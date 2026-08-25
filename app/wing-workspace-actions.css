@@ -1,0 +1,86 @@
+.action-page {
+  min-height: 100%;
+}
+
+.action-page-header,
+.action-grid,
+.report-kpis {
+  display: grid;
+  gap: 16px;
+}
+
+.action-page-header {
+  grid-template-columns: 1fr auto;
+  align-items: end;
+  margin-bottom: 24px;
+}
+
+.action-grid {
+  grid-template-columns: minmax(0, 1.5fr) minmax(280px, 0.75fr);
+}
+
+.report-kpis {
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  margin-bottom: 24px;
+}
+
+.action-main,
+.action-side,
+.report-chart,
+.report-side {
+  padding: 24px;
+}
+
+.card-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 12px;
+  margin-top: 24px;
+}
+
+.primary-button,
+.secondary-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  min-height: 42px;
+  padding: 0 16px;
+  border-radius: 10px;
+  cursor: pointer;
+}
+
+.primary-button {
+  color: #04131c;
+  background: #20d6c7;
+  border: 1px solid #20d6c7;
+}
+
+.secondary-button {
+  color: var(--text-primary, #e7f4ff);
+  background: transparent;
+  border: 1px solid rgba(255, 255, 255, 0.14);
+}
+
+.primary-button:hover,
+.secondary-button:hover {
+  filter: brightness(1.08);
+}
+
+.primary-button:focus-visible,
+.secondary-button:focus-visible {
+  outline: 2px solid #38bdf8;
+  outline-offset: 2px;
+}
+
+.primary-button.wide {
+  width: 100%;
+}
+
+@media (max-width: 800px) {
+  .action-page-header,
+  .action-grid,
+  .report-kpis {
+    grid-template-columns: 1fr;
+  }
+}
