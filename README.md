@@ -425,6 +425,13 @@ AI-Hospital-Command-Center/
 │   ├── seeds/
 │   └── schema/
 │
+├── dbms/
+│   ├── migrations/
+│   ├── seeds/
+│   ├── views/
+│   ├── docker-compose.yml
+│   └── README.md
+│
 ├── infrastructure/
 │   ├── docker/
 │   ├── kubernetes/
