@@ -7,7 +7,7 @@ CREATE TYPE user_role AS ENUM ('system_admin', 'hospital_admin', 'doctor', 'nurs
 CREATE TYPE staff_type AS ENUM ('doctor', 'nurse', 'technician', 'paramedic', 'administrator', 'support');
 CREATE TYPE staff_status AS ENUM ('active', 'on_leave', 'inactive');
 CREATE TYPE bed_type AS ENUM ('general', 'icu', 'emergency', 'isolation', 'surgical', 'pediatric');
-CREATE TYPE bed_status AS ENUM ('available', 'occupied', 'cleaning', 'maintenance', 'blocked');
+CREATE TYPE bed_status AS ENUM ('available', 'occupied', 'cleaning', 'maintenance', 'blocked', 'discharge_pending');
 CREATE TYPE admission_type AS ENUM ('emergency', 'elective', 'transfer', 'observation');
 CREATE TYPE admission_status AS ENUM ('registered', 'admitted', 'discharged', 'cancelled');
 CREATE TYPE triage_level AS ENUM ('resuscitation', 'emergency', 'urgent', 'semi_urgent', 'non_urgent');
@@ -17,6 +17,7 @@ CREATE TYPE risk_level AS ENUM ('normal', 'watch', 'high', 'critical');
 CREATE TYPE alert_status AS ENUM ('open', 'acknowledged', 'resolved', 'dismissed');
 CREATE TYPE recommendation_status AS ENUM ('proposed', 'approved', 'in_progress', 'completed', 'rejected');
 CREATE TYPE allocation_status AS ENUM ('planned', 'approved', 'active', 'completed', 'cancelled');
+CREATE TYPE department_type AS ENUM ('ICU', 'EMERGENCY', 'WARD', 'OPERATING_ROOM', 'ISOLATION');
 
 CREATE TABLE hospitals (
     hospital_id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -35,7 +36,8 @@ CREATE TABLE departments (
     hospital_id UUID NOT NULL REFERENCES hospitals(hospital_id),
     name VARCHAR(120) NOT NULL,
     code VARCHAR(30) NOT NULL,
-    department_type VARCHAR(40) NOT NULL,
+    department_type department_type NOT NULL,
+    type department_type NOT NULL,
     capacity INTEGER NOT NULL DEFAULT 0 CHECK (capacity >= 0),
     is_active BOOLEAN NOT NULL DEFAULT TRUE,
     created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
@@ -51,6 +53,7 @@ CREATE TABLE app_users (
     full_name VARCHAR(160) NOT NULL,
     role user_role NOT NULL,
     password_hash TEXT NOT NULL,
+    hashed_password TEXT NOT NULL,
     is_active BOOLEAN NOT NULL DEFAULT TRUE,
     last_login_at TIMESTAMPTZ,
     created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
@@ -79,6 +82,7 @@ CREATE TABLE staff (
     staff_type staff_type NOT NULL,
     specialty VARCHAR(100),
     status staff_status NOT NULL DEFAULT 'active',
+    on_shift BOOLEAN NOT NULL DEFAULT FALSE,
     hire_date DATE,
     created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
     updated_at TIMESTAMPTZ NOT NULL DEFAULT now(),
@@ -99,6 +103,7 @@ CREATE TABLE staff_shifts (
 
 CREATE TABLE beds (
     bed_id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    id UUID GENERATED ALWAYS AS (bed_id) STORED UNIQUE,
     department_id UUID NOT NULL REFERENCES departments(department_id),
     bed_number VARCHAR(20) NOT NULL,
     bed_type bed_type NOT NULL,
@@ -153,6 +158,9 @@ CREATE TABLE equipment (
     hospital_id UUID NOT NULL REFERENCES hospitals(hospital_id),
     department_id UUID REFERENCES departments(department_id),
     equipment_type_id UUID NOT NULL REFERENCES equipment_types(equipment_type_id),
+    name VARCHAR(100),
+    total_units INTEGER NOT NULL DEFAULT 1 CHECK (total_units >= 0),
+    in_use_units INTEGER NOT NULL DEFAULT 0 CHECK (in_use_units >= 0 AND in_use_units <= total_units),
     asset_tag VARCHAR(50) NOT NULL,
     status equipment_status NOT NULL DEFAULT 'available',
     serial_number VARCHAR(100),
@@ -228,6 +236,7 @@ CREATE TABLE alerts (
     status alert_status NOT NULL DEFAULT 'open',
     title VARCHAR(180) NOT NULL,
     message TEXT NOT NULL,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
     started_at TIMESTAMPTZ NOT NULL DEFAULT now(),
     acknowledged_at TIMESTAMPTZ,
     resolved_at TIMESTAMPTZ,
@@ -290,6 +299,25 @@ CREATE INDEX admissions_active_idx ON admissions (department_id, status, admitte
 CREATE INDEX equipment_department_status_idx ON equipment (department_id, status);
 CREATE INDEX emergency_active_idx ON emergency_events (hospital_id, ended_at, started_at DESC);
 CREATE INDEX recommendations_open_idx ON recommendations (hospital_id, status, priority);
+
+CREATE TABLE historical_metrics (
+    metric_id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    department_type department_type NOT NULL,
+    timestamp TIMESTAMPTZ NOT NULL,
+    arrivals INTEGER NOT NULL DEFAULT 0 CHECK (arrivals >= 0),
+    admissions_count INTEGER NOT NULL DEFAULT 0 CHECK (admissions_count >= 0),
+    occupied_beds INTEGER NOT NULL DEFAULT 0 CHECK (occupied_beds >= 0),
+    total_beds INTEGER NOT NULL DEFAULT 0 CHECK (total_beds >= 0),
+    staff_on_duty INTEGER NOT NULL DEFAULT 0 CHECK (staff_on_duty >= 0),
+    equipment_in_use INTEGER NOT NULL DEFAULT 0 CHECK (equipment_in_use >= 0),
+    equipment_total INTEGER NOT NULL DEFAULT 0 CHECK (equipment_total >= 0),
+    day_of_week SMALLINT NOT NULL CHECK (day_of_week BETWEEN 0 AND 6),
+    hour_of_day SMALLINT NOT NULL CHECK (hour_of_day BETWEEN 0 AND 23),
+    is_holiday BOOLEAN NOT NULL DEFAULT FALSE,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+    UNIQUE (department_type, timestamp)
+);
+CREATE INDEX historical_metrics_lookup ON historical_metrics (department_type, timestamp ASC);
 
 CREATE OR REPLACE FUNCTION set_updated_at() RETURNS TRIGGER LANGUAGE plpgsql AS $$
 BEGIN
