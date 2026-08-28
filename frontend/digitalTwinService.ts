@@ -1,3 +1,5 @@
-export async function getDigitalTwin() {
-  return fetch('/api/digital-twin').then((response) => response.json());
+import { apiRequest } from './apiClient';
+
+export function getDigitalTwin() {
+  return apiRequest('/api/v1/digital-twin');
 }

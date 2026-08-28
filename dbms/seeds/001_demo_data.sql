@@ -5,26 +5,26 @@ INSERT INTO hospitals (hospital_id, name, code, timezone, address, phone) VALUES
 ('00000000-0000-0000-0000-000000000001', 'Northstar General Hospital', 'NSGH', 'America/New_York', '100 Meridian Avenue', '+1-555-0100'),
 ('00000000-0000-0000-0000-000000000002', 'Northstar East Medical Center', 'NSEM', 'America/New_York', '240 Harbor Road', '+1-555-0200');
 
-INSERT INTO departments (department_id, hospital_id, name, code, department_type, capacity) VALUES
-('10000000-0000-0000-0000-000000000001', '00000000-0000-0000-0000-000000000001', 'Emergency Department', 'ED', 'emergency', 12),
-('10000000-0000-0000-0000-000000000002', '00000000-0000-0000-0000-000000000001', 'Intensive Care Unit', 'ICU', 'critical_care', 8),
-('10000000-0000-0000-0000-000000000003', '00000000-0000-0000-0000-000000000001', 'Medical-Surgical Unit', 'MSU', 'inpatient', 20),
-('10000000-0000-0000-0000-000000000004', '00000000-0000-0000-0000-000000000001', 'Radiology', 'RAD', 'diagnostics', 0),
-('10000000-0000-0000-0000-000000000005', '00000000-0000-0000-0000-000000000002', 'Emergency Department', 'ED', 'emergency', 10),
-('10000000-0000-0000-0000-000000000006', '00000000-0000-0000-0000-000000000002', 'Intensive Care Unit', 'ICU', 'critical_care', 6);
+INSERT INTO departments (department_id, hospital_id, name, code, department_type, type, capacity) VALUES
+('10000000-0000-0000-0000-000000000001', '00000000-0000-0000-0000-000000000001', 'Emergency Department', 'ED', 'EMERGENCY', 'EMERGENCY', 12),
+('10000000-0000-0000-0000-000000000002', '00000000-0000-0000-0000-000000000001', 'Intensive Care Unit', 'ICU', 'ICU', 'ICU', 8),
+('10000000-0000-0000-0000-000000000003', '00000000-0000-0000-0000-000000000001', 'Medical-Surgical Unit', 'MSU', 'WARD', 'WARD', 20),
+('10000000-0000-0000-0000-000000000004', '00000000-0000-0000-0000-000000000001', 'Operating Room', 'OR', 'OPERATING_ROOM', 'OPERATING_ROOM', 0),
+('10000000-0000-0000-0000-000000000005', '00000000-0000-0000-0000-000000000002', 'Emergency Department', 'ED', 'EMERGENCY', 'EMERGENCY', 10),
+('10000000-0000-0000-0000-000000000006', '00000000-0000-0000-0000-000000000002', 'Isolation Unit', 'ISO', 'ISOLATION', 'ISOLATION', 6);
 
-INSERT INTO app_users (user_id, hospital_id, email, full_name, role, password_hash) VALUES
-('20000000-0000-0000-0000-000000000001', '00000000-0000-0000-0000-000000000001', 'admin@northstar.example', 'Jordan Lee', 'hospital_admin', 'DEMO_HASH_REPLACE_IN_APP'),
-('20000000-0000-0000-0000-000000000002', '00000000-0000-0000-0000-000000000001', 'ops@northstar.example', 'Morgan Patel', 'operations_manager', 'DEMO_HASH_REPLACE_IN_APP'),
-('20000000-0000-0000-0000-000000000003', '00000000-0000-0000-0000-000000000002', 'admin.east@northstar.example', 'Casey Rivera', 'hospital_admin', 'DEMO_HASH_REPLACE_IN_APP');
+INSERT INTO app_users (user_id, hospital_id, email, full_name, role, password_hash, hashed_password) VALUES
+('20000000-0000-0000-0000-000000000001', '00000000-0000-0000-0000-000000000001', 'admin@northstar.example', 'Jordan Lee', 'hospital_admin', crypt('demo123', gen_salt('bf')), crypt('demo123', gen_salt('bf'))),
+('20000000-0000-0000-0000-000000000002', '00000000-0000-0000-0000-000000000001', 'ops@northstar.example', 'Morgan Patel', 'operations_manager', crypt('demo123', gen_salt('bf')), crypt('demo123', gen_salt('bf'))),
+('20000000-0000-0000-0000-000000000003', '00000000-0000-0000-0000-000000000002', 'admin.east@northstar.example', 'Casey Rivera', 'hospital_admin', crypt('demo123', gen_salt('bf')), crypt('demo123', gen_salt('bf')));
 
-INSERT INTO staff (staff_id, hospital_id, department_id, employee_code, full_name, staff_type, specialty, status) VALUES
-('30000000-0000-0000-0000-000000000001', '00000000-0000-0000-0000-000000000001', '10000000-0000-0000-0000-000000000001', 'NS-D-001', 'Dr. Avery Chen', 'doctor', 'Emergency Medicine', 'active'),
-('30000000-0000-0000-0000-000000000002', '00000000-0000-0000-0000-000000000001', '10000000-0000-0000-0000-000000000002', 'NS-D-002', 'Dr. Samira Brooks', 'doctor', 'Critical Care', 'active'),
-('30000000-0000-0000-0000-000000000003', '00000000-0000-0000-0000-000000000001', '10000000-0000-0000-0000-000000000001', 'NS-N-001', 'Taylor Morgan', 'nurse', 'Emergency Nursing', 'active'),
-('30000000-0000-0000-0000-000000000004', '00000000-0000-0000-0000-000000000001', '10000000-0000-0000-0000-000000000002', 'NS-N-002', 'Riley Shah', 'nurse', 'Critical Care Nursing', 'active'),
-('30000000-0000-0000-0000-000000000005', '00000000-0000-0000-0000-000000000001', '10000000-0000-0000-0000-000000000003', 'NS-N-003', 'Jamie Wilson', 'nurse', 'Medical Nursing', 'active'),
-('30000000-0000-0000-0000-000000000006', '00000000-0000-0000-0000-000000000002', '10000000-0000-0000-0000-000000000005', 'NE-N-001', 'Alex Kim', 'nurse', 'Emergency Nursing', 'active');
+INSERT INTO staff (staff_id, hospital_id, department_id, employee_code, full_name, staff_type, specialty, status, on_shift) VALUES
+('30000000-0000-0000-0000-000000000001', '00000000-0000-0000-0000-000000000001', '10000000-0000-0000-0000-000000000001', 'NS-D-001', 'Dr. Avery Chen', 'doctor', 'Emergency Medicine', 'active', TRUE),
+('30000000-0000-0000-0000-000000000002', '00000000-0000-0000-0000-000000000001', '10000000-0000-0000-0000-000000000002', 'NS-D-002', 'Dr. Samira Brooks', 'doctor', 'Critical Care', 'active', TRUE),
+('30000000-0000-0000-0000-000000000003', '00000000-0000-0000-0000-000000000001', '10000000-0000-0000-0000-000000000001', 'NS-N-001', 'Taylor Morgan', 'nurse', 'Emergency Nursing', 'active', TRUE),
+('30000000-0000-0000-0000-000000000004', '00000000-0000-0000-0000-000000000001', '10000000-0000-0000-0000-000000000002', 'NS-N-002', 'Riley Shah', 'nurse', 'Critical Care Nursing', 'active', TRUE),
+('30000000-0000-0000-0000-000000000005', '00000000-0000-0000-0000-000000000001', '10000000-0000-0000-0000-000000000003', 'NS-N-003', 'Jamie Wilson', 'nurse', 'Medical Nursing', 'active', TRUE),
+('30000000-0000-0000-0000-000000000006', '00000000-0000-0000-0000-000000000002', '10000000-0000-0000-0000-000000000005', 'NE-N-001', 'Alex Kim', 'nurse', 'Emergency Nursing', 'active', TRUE);
 
 INSERT INTO beds (bed_id, department_id, bed_number, bed_type, status, floor, is_monitoring_capable) VALUES
 ('40000000-0000-0000-0000-000000000001', '10000000-0000-0000-0000-000000000001', 'ED-01', 'emergency', 'occupied', '1', TRUE),
@@ -74,11 +74,11 @@ INSERT INTO equipment_types (equipment_type_id, name, category, requires_calibra
 ('70000000-0000-0000-0000-000000000003', 'CT Scanner', 'imaging', TRUE),
 ('70000000-0000-0000-0000-000000000004', 'Patient Monitor', 'monitoring', FALSE);
 
-INSERT INTO equipment (equipment_id, hospital_id, department_id, equipment_type_id, asset_tag, status, serial_number, last_service_at, next_service_at) VALUES
-('71000000-0000-0000-0000-000000000001', '00000000-0000-0000-0000-000000000001', '10000000-0000-0000-0000-000000000002', '70000000-0000-0000-0000-000000000001', 'NS-VENT-001', 'in_use', 'VENT-DEMO-001', now() - INTERVAL '20 days', now() + INTERVAL '70 days'),
-('71000000-0000-0000-0000-000000000002', '00000000-0000-0000-0000-000000000001', '10000000-0000-0000-0000-000000000004', '70000000-0000-0000-0000-000000000003', 'NS-CT-001', 'available', 'CT-DEMO-001', now() - INTERVAL '10 days', now() + INTERVAL '80 days'),
-('71000000-0000-0000-0000-000000000003', '00000000-0000-0000-0000-000000000001', '10000000-0000-0000-0000-000000000001', '70000000-0000-0000-0000-000000000004', 'NS-MON-001', 'in_use', 'MON-DEMO-001', now() - INTERVAL '40 days', now() + INTERVAL '50 days'),
-('71000000-0000-0000-0000-000000000004', '00000000-0000-0000-0000-000000000002', '10000000-0000-0000-0000-000000000005', '70000000-0000-0000-0000-000000000002', 'NE-ECG-001', 'maintenance', 'ECG-DEMO-001', now() - INTERVAL '120 days', now() - INTERVAL '5 days');
+INSERT INTO equipment (equipment_id, hospital_id, department_id, equipment_type_id, name, total_units, in_use_units, asset_tag, status, serial_number, last_service_at, next_service_at) VALUES
+('71000000-0000-0000-0000-000000000001', '00000000-0000-0000-0000-000000000001', '10000000-0000-0000-0000-000000000002', '70000000-0000-0000-0000-000000000001', 'Ventilator', 1, 1, 'NS-VENT-001', 'in_use', 'VENT-DEMO-001', now() - INTERVAL '20 days', now() + INTERVAL '70 days'),
+('71000000-0000-0000-0000-000000000002', '00000000-0000-0000-0000-000000000001', '10000000-0000-0000-0000-000000000004', '70000000-0000-0000-0000-000000000003', 'CT Scanner', 1, 0, 'NS-CT-001', 'available', 'CT-DEMO-001', now() - INTERVAL '10 days', now() + INTERVAL '80 days'),
+('71000000-0000-0000-0000-000000000003', '00000000-0000-0000-0000-000000000001', '10000000-0000-0000-0000-000000000001', '70000000-0000-0000-0000-000000000004', 'Patient Monitor', 1, 1, 'NS-MON-001', 'in_use', 'MON-DEMO-001', now() - INTERVAL '40 days', now() + INTERVAL '50 days'),
+('71000000-0000-0000-0000-000000000004', '00000000-0000-0000-0000-000000000002', '10000000-0000-0000-0000-000000000005', '70000000-0000-0000-0000-000000000002', 'ECG Machine', 1, 0, 'NE-ECG-001', 'maintenance', 'ECG-DEMO-001', now() - INTERVAL '120 days', now() - INTERVAL '5 days');
 
 INSERT INTO supplies (hospital_id, department_id, name, sku, unit, quantity_on_hand, reorder_threshold) VALUES
 ('00000000-0000-0000-0000-000000000001', '10000000-0000-0000-0000-000000000002', 'N95 Respirator', 'PPE-N95', 'box', 18, 25),
@@ -104,5 +104,41 @@ INSERT INTO recommendations (hospital_id, department_id, alert_id, title, action
 
 INSERT INTO resource_allocations (hospital_id, department_id, resource_type, quantity, starts_at, ends_at, status, reason) VALUES
 ('00000000-0000-0000-0000-000000000001', '10000000-0000-0000-0000-000000000001', 'nurse', 2, now(), now() + INTERVAL '8 hours', 'planned', 'Emergency surge response recommendation');
+
+-- Provide enough hourly history for the forecasting service to train locally.
+WITH profiles(department_type, total_beds, base_arrivals, staff_ratio, equipment_total) AS (
+	VALUES
+		('ICU'::department_type, 30, 1.2::numeric, .35::numeric, 40),
+		('EMERGENCY'::department_type, 40, 4.0::numeric, .25::numeric, 25),
+		('WARD'::department_type, 120, 2.5::numeric, .15::numeric, 60),
+		('OPERATING_ROOM'::department_type, 10, .6::numeric, .40::numeric, 15),
+		('ISOLATION'::department_type, 15, .3::numeric, .30::numeric, 10)
+), hours AS (
+	SELECT generate_series(
+		date_trunc('hour', now() - INTERVAL '60 days'),
+		date_trunc('hour', now()),
+		INTERVAL '1 hour'
+	) AS measured_at
+)
+INSERT INTO historical_metrics (
+	department_type, timestamp, arrivals, admissions_count, occupied_beds,
+	total_beds, staff_on_duty, equipment_in_use, equipment_total,
+	day_of_week, hour_of_day, is_holiday
+)
+SELECT
+	p.department_type,
+	h.measured_at,
+	GREATEST(0, ROUND(p.base_arrivals * (1 + .25 * SIN(EXTRACT(HOUR FROM h.measured_at) / 24 * 2 * PI())))::INTEGER),
+	GREATEST(0, ROUND(p.base_arrivals * (1 + .25 * SIN(EXTRACT(HOUR FROM h.measured_at) / 24 * 2 * PI())))::INTEGER),
+	GREATEST(0, LEAST(p.total_beds, ROUND(p.total_beds * (.60 + .12 * SIN(EXTRACT(HOUR FROM h.measured_at) / 24 * 2 * PI())))::INTEGER)),
+	p.total_beds,
+	GREATEST(2, ROUND(p.total_beds * p.staff_ratio)::INTEGER),
+	ROUND(p.equipment_total * .65)::INTEGER,
+	p.equipment_total,
+	EXTRACT(ISODOW FROM h.measured_at)::INTEGER - 1,
+	EXTRACT(HOUR FROM h.measured_at)::INTEGER,
+	FALSE
+FROM profiles p
+CROSS JOIN hours h;
 
 COMMIT;
