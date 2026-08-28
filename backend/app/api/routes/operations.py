@@ -10,6 +10,7 @@ from app.schemas.schemas import BedOut, BedStatusUpdate, StaffOut, EquipmentOut,
 from app.services.optimization import optimize_department
 from app.services.recommendations import build_recommendation
 from app.ml.data_utils import ingest_dataframe
+from app.api.routes.dashboard import dashboard as dashboard_snapshot
 
 router = APIRouter(prefix="/api/v1", tags=["Operations"])
 
@@ -39,6 +40,38 @@ def staff(db: Session = Depends(get_db)):
 @router.get("/equipment", response_model=list[EquipmentOut])
 def equipment(db: Session = Depends(get_db)):
     return db.query(Equipment).all()
+
+@router.get("/resources")
+def resources(db: Session = Depends(get_db)):
+    return {
+        "beds": bed_summaries(db),
+        "staff": staff(db),
+        "equipment": equipment(db),
+    }
+
+@router.get("/digital-twin")
+def digital_twin(db: Session = Depends(get_db)):
+    return {
+        "departments": dashboard_snapshot(db),
+        "mode": "live",
+        "status": "operational",
+    }
+
+@router.post("/injury-analysis")
+async def injury_analysis(file: UploadFile = File(...)):
+    if not file.filename:
+        raise HTTPException(400, "An image file is required")
+    if file.content_type not in {"image/png", "image/jpeg", "image/webp", "application/dicom", "application/octet-stream"}:
+        raise HTTPException(415, "Upload a PNG, JPG, WEBP, or DICOM file")
+    raw = await file.read()
+    if len(raw) > 50 * 1024 * 1024:
+        raise HTTPException(413, "Image exceeds 50 MB limit")
+    return {
+        "filename": file.filename,
+        "status": "review_required",
+        "findings": [],
+        "message": "Image received for authorized clinical review. No diagnosis was generated.",
+    }
 
 @router.post("/optimize", response_model=OptimizationResponse)
 def optimize(payload: OptimizationRequest, db: Session = Depends(get_db)):

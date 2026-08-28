@@ -24,12 +24,14 @@ SELECT
     d.hospital_id,
     d.name AS department_name,
     d.department_type,
+    d.type,
     COALESCE(bt.staffed_beds, 0) AS staffed_beds,
     COALESCE(bt.occupied_beds, 0) AS occupied_beds,
     COALESCE(bt.available_beds, 0) AS available_beds,
     ROUND(100.0 * COALESCE(bt.occupied_beds, 0) / NULLIF(bt.staffed_beds, 0), 1) AS occupancy_percent,
     COALESCE(at.active_admissions, 0) AS active_admissions,
     COALESCE(st.active_staff, 0) AS active_staff,
+    COALESCE(st.active_staff, 0) AS staff_on_duty,
     CASE
         WHEN COALESCE(bt.occupied_beds, 0) >= COALESCE(bt.staffed_beds, 0) AND COALESCE(bt.staffed_beds, 0) > 0 THEN 'critical'::risk_level
         WHEN COALESCE(bt.staffed_beds, 0) > 0 AND COALESCE(bt.occupied_beds, 0) >= COALESCE(bt.staffed_beds, 0) * 0.9 THEN 'high'::risk_level
@@ -82,6 +84,7 @@ SELECT
     al.status,
     al.title,
     al.message,
+    al.created_at,
     al.started_at,
     EXTRACT(EPOCH FROM (now() - al.started_at)) / 3600.0 AS age_hours
 FROM alerts al
