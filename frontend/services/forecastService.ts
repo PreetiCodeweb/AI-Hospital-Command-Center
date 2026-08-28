@@ -1,3 +1,1 @@
-export async function getForecast() {
-  return fetch('/api/forecast').then((response) => response.json());
-}
+export { getForecast, requestForecast } from '../forecastService';

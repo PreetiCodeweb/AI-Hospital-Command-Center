@@ -1,3 +1,5 @@
-export async function getDashboard() {
-  return fetch('/api/dashboard').then((response) => response.json());
+import { apiRequest } from './apiClient';
+
+export function getDashboard() {
+  return apiRequest<{ departments: unknown[] }>('/api/dashboard');
 }

@@ -1,3 +1,5 @@
-export async function getResources() {
-  return fetch('/api/resources').then((response) => response.json());
+import { apiRequest } from './apiClient';
+
+export function getResources() {
+  return apiRequest('/api/v1/resources');
 }

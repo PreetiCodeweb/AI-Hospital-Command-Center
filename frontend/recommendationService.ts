@@ -1,3 +1,5 @@
-export async function getRecommendations() {
-  return fetch('/api/recommendations').then((response) => response.json());
+import { apiRequest } from './apiClient';
+
+export function getRecommendations() {
+  return apiRequest('/api/v1/recommendations');
 }
