@@ -2,19 +2,20 @@ import hashlib
 import secrets
 from datetime import datetime, timedelta, timezone
 
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, status
 from fastapi.security import OAuth2PasswordRequestForm
 from sqlalchemy.orm import Session
+from app.services.email import send_verification_email
 
+from app.core.security import (
+    create_access_token,
+    get_current_user,
+    hash_password,
+    verify_password,
+)
 from app.database.session import get_db
 from app.models.models import User
 from app.schemas.schemas import Token, UserCreate, UserOut
-from app.core.security import (
-    hash_password,
-    verify_password,
-    create_access_token,
-    get_current_user,
-)
 
 router = APIRouter(prefix="/auth", tags=["Authentication"])
 
@@ -25,9 +26,18 @@ def _token_hash(token: str) -> str:
     return hashlib.sha256(token.encode()).hexdigest()
 
 
-@router.post("/register", response_model=UserOut, status_code=status.HTTP_201_CREATED)
-def register(payload: UserCreate, db: Session = Depends(get_db)):
+@router.post(
+    "/register",
+    response_model=UserOut,
+    status_code=status.HTTP_201_CREATED,
+)
+def register(
+    payload: UserCreate,
+    background_tasks: BackgroundTasks,
+    db: Session = Depends(get_db),
+):
     existing_user = db.query(User).filter(User.email == payload.email).first()
+
     if existing_user:
         raise HTTPException(
             status_code=status.HTTP_409_CONFLICT,
@@ -40,19 +50,26 @@ def register(payload: UserCreate, db: Session = Depends(get_db)):
     user = User(
         email=payload.email,
         hashed_password=password_hash,
-        password_hash=password_hash,  # Required 
+        password_hash=password_hash,
         full_name=payload.full_name,
         role=payload.role,
         is_verified=False,
         verification_token_hash=_token_hash(raw_verification_token),
         verification_token_expires_at=(
-            datetime.now(timezone.utc) + timedelta(hours=24)
+            datetime.now(timezone.utc)
+            + timedelta(hours=VERIFICATION_TOKEN_EXPIRY_HOURS)
         ),
     )
-    
+
     db.add(user)
     db.commit()
     db.refresh(user)
+    
+    background_tasks.add_task(
+        send_verification_email,
+        user.email,
+        raw_verification_token,
+    )
 
     return user
 
@@ -85,6 +102,7 @@ def verify_email(token: str, db: Session = Depends(get_db)):
     user.verification_token_expires_at = None
 
     db.commit()
+
     return {"message": "Email verified successfully"}
 
 
