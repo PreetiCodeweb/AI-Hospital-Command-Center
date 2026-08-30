@@ -4,6 +4,30 @@ from sqlalchemy import Boolean, Date, DateTime, Enum as SAEnum, ForeignKey, Inte
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 from app.database.session import Base
 
+class User(Base):
+    __tablename__ = "app_users"
+    id: Mapped[str] = mapped_column("user_id", primary_key=True, server_default="gen_random_uuid()")
+    hospital_id: Mapped[str | None] = mapped_column(ForeignKey("hospitals.hospital_id"))
+    email: Mapped[str] = mapped_column(String(255), unique=True, index=True)
+    full_name: Mapped[str] = mapped_column(String(160))
+    role: Mapped[str] = mapped_column(String(40))
+    password_hash: Mapped[str] = mapped_column(Text)
+    hashed_password: Mapped[str] = mapped_column(Text)
+    is_active: Mapped[bool] = mapped_column(Boolean, default=True)
+    is_verified: Mapped[bool] = mapped_column(
+        Boolean,
+        default=False,
+        nullable=False,
+    )
+    verification_token_hash: Mapped[str | None] = mapped_column(
+        String(64),
+        nullable=True,
+    )
+    verification_token_expires_at: Mapped[datetime | None] = mapped_column(
+        DateTime(timezone=True),
+        nullable=True,
+    )
+
 class DepartmentType(str, Enum):
     ICU = "ICU"
     EMERGENCY = "EMERGENCY"
@@ -18,17 +42,6 @@ class BedStatus(str, Enum):
     MAINTENANCE = "maintenance"
     BLOCKED = "blocked"
     DISCHARGE_PENDING = "discharge_pending"
-
-class User(Base):
-    __tablename__ = "app_users"
-    id: Mapped[str] = mapped_column("user_id", primary_key=True, server_default="gen_random_uuid()")
-    hospital_id: Mapped[str | None] = mapped_column(ForeignKey("hospitals.hospital_id"))
-    email: Mapped[str] = mapped_column(String(255), unique=True, index=True)
-    full_name: Mapped[str] = mapped_column(String(160))
-    role: Mapped[str] = mapped_column(String(40))
-    password_hash: Mapped[str] = mapped_column(Text)
-    hashed_password: Mapped[str] = mapped_column(Text)
-    is_active: Mapped[bool] = mapped_column(Boolean, default=True)
 
 class Department(Base):
     __tablename__ = "departments"
