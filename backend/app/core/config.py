@@ -14,6 +14,12 @@ class Settings(BaseSettings):
     DATA_DIR: Path = Path("data")
     MODEL_ARTIFACT_DIR: Path = Path("data/models")
     MIN_TRAINING_ROWS: int = 72
+    FRONTEND_URL: str = "http://localhost:3000"
+    SMTP_HOST: str
+    SMTP_PORT: int = 465
+    SMTP_USERNAME: str
+    SMTP_PASSWORD: str
+    SMTP_FROM_EMAIL: str
     model_config = SettingsConfigDict(env_file=".env", extra="ignore")
 
     @property
