@@ -13,10 +13,10 @@ INSERT INTO departments (department_id, hospital_id, name, code, department_type
 ('10000000-0000-0000-0000-000000000005', '00000000-0000-0000-0000-000000000002', 'Emergency Department', 'ED', 'EMERGENCY', 'EMERGENCY', 10),
 ('10000000-0000-0000-0000-000000000006', '00000000-0000-0000-0000-000000000002', 'Isolation Unit', 'ISO', 'ISOLATION', 'ISOLATION', 6);
 
-INSERT INTO app_users (user_id, hospital_id, email, full_name, role, password_hash, hashed_password) VALUES
-('20000000-0000-0000-0000-000000000001', '00000000-0000-0000-0000-000000000001', 'admin@northstar.example', 'Jordan Lee', 'hospital_admin', crypt('demo123', gen_salt('bf')), crypt('demo123', gen_salt('bf'))),
-('20000000-0000-0000-0000-000000000002', '00000000-0000-0000-0000-000000000001', 'ops@northstar.example', 'Morgan Patel', 'operations_manager', crypt('demo123', gen_salt('bf')), crypt('demo123', gen_salt('bf'))),
-('20000000-0000-0000-0000-000000000003', '00000000-0000-0000-0000-000000000002', 'admin.east@northstar.example', 'Casey Rivera', 'hospital_admin', crypt('demo123', gen_salt('bf')), crypt('demo123', gen_salt('bf')));
+INSERT INTO app_users (user_id, hospital_id, email, full_name, role, password_hash, hashed_password, is_verified) VALUES
+('20000000-0000-0000-0000-000000000001', '00000000-0000-0000-0000-000000000001', 'admin@northstar.example', 'Jordan Lee', 'hospital_admin', crypt('demo123', gen_salt('bf')), crypt('demo123', gen_salt('bf')), TRUE),
+('20000000-0000-0000-0000-000000000002', '00000000-0000-0000-0000-000000000001', 'ops@northstar.example', 'Morgan Patel', 'operations_manager', crypt('demo123', gen_salt('bf')), crypt('demo123', gen_salt('bf')), TRUE),
+('20000000-0000-0000-0000-000000000003', '00000000-0000-0000-0000-000000000002', 'admin.east@northstar.example', 'Casey Rivera', 'hospital_admin', crypt('demo123', gen_salt('bf')), crypt('demo123', gen_salt('bf')), TRUE);
 
 INSERT INTO staff (staff_id, hospital_id, department_id, employee_code, full_name, staff_type, specialty, status, on_shift) VALUES
 ('30000000-0000-0000-0000-000000000001', '00000000-0000-0000-0000-000000000001', '10000000-0000-0000-0000-000000000001', 'NS-D-001', 'Dr. Avery Chen', 'doctor', 'Emergency Medicine', 'active', TRUE),

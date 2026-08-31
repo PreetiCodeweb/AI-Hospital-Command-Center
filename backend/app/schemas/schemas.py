@@ -15,6 +15,11 @@ class UserOut(BaseModel):
     full_name: str
     role: str
 
+
+class AdminUserCreate(UserCreate):
+    """A user created by an authenticated administrator."""
+    role: str = "operations_manager"
+
 class Token(BaseModel):
     access_token: str
     token_type: str = "bearer"

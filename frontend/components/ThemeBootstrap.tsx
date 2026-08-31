@@ -5,11 +5,11 @@ import { useEffect } from 'react';
 export function ThemeBootstrap() {
   useEffect(() => {
     const root = document.documentElement;
-    const theme = window.localStorage.getItem('medinexus-theme') || 'dark';
+    const theme = window.localStorage.getItem('medsync-theme') || 'dark';
     root.dataset.theme = theme;
 
     try {
-      const settings = JSON.parse(window.localStorage.getItem('medinexus-settings') || '{}');
+      const settings = JSON.parse(window.localStorage.getItem('medsync-settings') || '{}');
       root.dataset.compact = settings.toggles?.compactMode ? 'true' : 'false';
       root.dataset.reducedMotion = settings.toggles?.reducedMotion ? 'true' : 'false';
       root.dataset.chartDensity = (settings.chartDensity || 'Balanced').toLowerCase();

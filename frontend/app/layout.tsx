@@ -14,10 +14,11 @@ import './department-views.css';
 import './bottlenecks.css';
 import './injury-interactions.css';
 import './account.css';
+import './auth.css';
 import { ThemeBootstrap } from '../components/ThemeBootstrap';
 
 export const metadata: Metadata = {
-  title: 'MediNexus | AI Hospital Operations Command Center',
+  title: 'MedSync | AI Hospital Operations Command Center',
   description: 'Operational decision support for hospital leaders.',
 };
 
@@ -29,9 +30,9 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
           __html: `
             try {
               const root = document.documentElement;
-              const theme = localStorage.getItem('medinexus-theme') || 'dark';
+              const theme = localStorage.getItem('medsync-theme') || 'dark';
               root.dataset.theme = theme;
-              const settings = JSON.parse(localStorage.getItem('medinexus-settings') || '{}');
+              const settings = JSON.parse(localStorage.getItem('medsync-settings') || '{}');
               root.dataset.compact = settings.toggles?.compactMode ? 'true' : 'false';
               root.dataset.reducedMotion = settings.toggles?.reducedMotion ? 'true' : 'false';
               root.dataset.chartDensity = (settings.chartDensity || 'Balanced').toLowerCase();
