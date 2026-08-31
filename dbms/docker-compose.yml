@@ -1,0 +1,21 @@
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: hospital-command-center-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: hospital_command_center
+      POSTGRES_USER: hospital
+      POSTGRES_PASSWORD: hospital_dev_password
+    ports:
+      - "5433:5432"
+    volumes:
+      - hospital_command_center_pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U hospital -d hospital_command_center"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+volumes:
+  hospital_command_center_pgdata:

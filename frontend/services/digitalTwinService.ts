@@ -1,0 +1,1 @@
+export { getDigitalTwin } from '../digitalTwinService';

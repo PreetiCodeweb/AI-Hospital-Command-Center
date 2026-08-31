@@ -1,0 +1,29 @@
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+*.egg-info/
+.venv/
+venv/
+
+# Env files
+.env
+.env.*
+!.env.example
+
+# Node
+node_modules/
+.next/
+out/
+.npm/
+
+# Data / local artifacts
+data/
+*.sqlite
+*.sqlite3
+*.log
+
+# Docker / OS
+.DS_Store
+Thumbs.db
