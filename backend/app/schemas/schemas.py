@@ -1,10 +1,21 @@
 from datetime import datetime
-from pydantic import BaseModel, ConfigDict, EmailStr, Field
+from uuid import UUID
+from pydantic import BaseModel, ConfigDict, EmailStr, Field, field_validator
 from app.models.models import DepartmentType, BedStatus
+
+
+def _normalize_uuid(value):
+    if value is None:
+        return value
+    if isinstance(value, UUID):
+        return str(value)
+    if isinstance(value, str):
+        return value
+    return str(value)
 
 class UserCreate(BaseModel):
     email: EmailStr
-    password: str = Field(min_length=8)
+    password: str = Field(min_length=8, max_length=72)
     full_name: str = Field(min_length=2, max_length=160)
     role: str = "operations_manager"
 
@@ -14,6 +25,11 @@ class UserOut(BaseModel):
     email: EmailStr
     full_name: str
     role: str
+
+    @field_validator('id', mode='before')
+    @classmethod
+    def validate_id(cls, value):
+        return _normalize_uuid(value)
 
 
 class AdminUserCreate(UserCreate):
@@ -57,6 +73,11 @@ class BedOut(BaseModel):
     bed_type: str
     status: BedStatus
 
+    @field_validator('id', 'department_id', mode='before')
+    @classmethod
+    def validate_ids(cls, value):
+        return _normalize_uuid(value)
+
 class BedSummary(BaseModel):
     department_type: DepartmentType
     total_beds: int
@@ -78,6 +99,11 @@ class StaffOut(BaseModel):
     status: str
     on_shift: bool
 
+    @field_validator('id', 'hospital_id', 'department_id', mode='before')
+    @classmethod
+    def validate_ids(cls, value):
+        return _normalize_uuid(value)
+
 class EquipmentOut(BaseModel):
     model_config = ConfigDict(from_attributes=True)
     id: str
@@ -87,6 +113,11 @@ class EquipmentOut(BaseModel):
     total_units: int
     in_use_units: int
     status: str
+
+    @field_validator('id', 'hospital_id', 'department_id', mode='before')
+    @classmethod
+    def validate_ids(cls, value):
+        return _normalize_uuid(value)
 
 class OptimizationRequest(BaseModel):
     department_type: DepartmentType
@@ -111,6 +142,11 @@ class RecommendationOut(BaseModel):
     priority: int
     status: str
 
+    @field_validator('id', 'hospital_id', 'department_id', mode='before')
+    @classmethod
+    def validate_ids(cls, value):
+        return _normalize_uuid(value)
+
 class AlertOut(BaseModel):
     model_config = ConfigDict(from_attributes=True)
     id: str
@@ -122,6 +158,11 @@ class AlertOut(BaseModel):
     title: str
     message: str
     created_at: datetime
+
+    @field_validator('id', 'hospital_id', 'department_id', mode='before')
+    @classmethod
+    def validate_ids(cls, value):
+        return _normalize_uuid(value)
 
 class SurgeSimulationRequest(BaseModel):
     department_type: DepartmentType

@@ -1,16 +1,35 @@
 from enum import Enum
 from datetime import date, datetime
-from sqlalchemy import Boolean, Date, DateTime, Enum as SAEnum, ForeignKey, Integer, Numeric, String, Text, UniqueConstraint
+from uuid import UUID
+
+from sqlalchemy import Boolean, Date, DateTime, Enum as SAEnum, ForeignKey, Integer, Numeric, String, Text, UniqueConstraint, UUID as SAUUID, text
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 from app.database.session import Base
 
+class UserRole(str, Enum):
+    SYSTEM_ADMIN = "system_admin"
+    HOSPITAL_ADMIN = "hospital_admin"
+    DOCTOR = "doctor"
+    NURSE = "nurse"
+    OPERATIONS_MANAGER = "operations_manager"
+
+
 class User(Base):
     __tablename__ = "app_users"
-    id: Mapped[str] = mapped_column("user_id", primary_key=True, server_default="gen_random_uuid()")
-    hospital_id: Mapped[str | None] = mapped_column(ForeignKey("hospitals.hospital_id"))
+    id: Mapped[UUID] = mapped_column("user_id", SAUUID(as_uuid=True), primary_key=True, server_default=text("gen_random_uuid()"))
+    hospital_id: Mapped[UUID | None] = mapped_column(ForeignKey("hospitals.hospital_id"), type_=SAUUID(as_uuid=True), nullable=True)
     email: Mapped[str] = mapped_column(String(255), unique=True, index=True)
     full_name: Mapped[str] = mapped_column(String(160))
-    role: Mapped[str] = mapped_column(String(40))
+    role: Mapped[str] = mapped_column(
+        SAEnum(
+            *[item.value for item in UserRole],
+            name="user_role",
+            native_enum=True,
+            create_type=False,
+            values_callable=lambda enum_values: [item.value for item in enum_values],
+        ),
+        default=UserRole.OPERATIONS_MANAGER.value,
+    )
     password_hash: Mapped[str] = mapped_column(Text)
     hashed_password: Mapped[str] = mapped_column(Text)
     is_active: Mapped[bool] = mapped_column(Boolean, default=True)
@@ -45,8 +64,8 @@ class BedStatus(str, Enum):
 
 class Department(Base):
     __tablename__ = "departments"
-    id: Mapped[str] = mapped_column("department_id", primary_key=True, server_default="gen_random_uuid()")
-    hospital_id: Mapped[str] = mapped_column(ForeignKey("hospitals.hospital_id"))
+    id: Mapped[UUID] = mapped_column("department_id", SAUUID(as_uuid=True), primary_key=True, server_default=text("gen_random_uuid()"))
+    hospital_id: Mapped[UUID] = mapped_column(ForeignKey("hospitals.hospital_id"), type_=SAUUID(as_uuid=True))
     name: Mapped[str] = mapped_column(String(120))
     code: Mapped[str] = mapped_column(String(30))
     department_type: Mapped[DepartmentType] = mapped_column(SAEnum(DepartmentType, name="department_type", native_enum=True, create_type=False))
@@ -59,9 +78,9 @@ class Department(Base):
 
 class Bed(Base):
     __tablename__ = "beds"
-    bed_id: Mapped[str] = mapped_column(primary_key=True, server_default="gen_random_uuid()")
-    id: Mapped[str] = mapped_column("id", unique=True, nullable=False)
-    department_id: Mapped[str] = mapped_column(ForeignKey("departments.department_id"))
+    bed_id: Mapped[UUID] = mapped_column(SAUUID(as_uuid=True), primary_key=True, server_default=text("gen_random_uuid()"))
+    id: Mapped[UUID] = mapped_column("id", SAUUID(as_uuid=True), unique=True, nullable=False)
+    department_id: Mapped[UUID] = mapped_column(ForeignKey("departments.department_id"), type_=SAUUID(as_uuid=True))
     bed_number: Mapped[str] = mapped_column(String(20))
     bed_type: Mapped[str] = mapped_column(String(30))
     status: Mapped[BedStatus] = mapped_column(SAEnum(BedStatus, name="bed_status", native_enum=True, create_type=False), default=BedStatus.AVAILABLE)
@@ -70,9 +89,9 @@ class Bed(Base):
 
 class Staff(Base):
     __tablename__ = "staff"
-    id: Mapped[str] = mapped_column("staff_id", primary_key=True, server_default="gen_random_uuid()")
-    hospital_id: Mapped[str] = mapped_column(ForeignKey("hospitals.hospital_id"))
-    department_id: Mapped[str | None] = mapped_column(ForeignKey("departments.department_id"))
+    id: Mapped[UUID] = mapped_column("staff_id", SAUUID(as_uuid=True), primary_key=True, server_default=text("gen_random_uuid()"))
+    hospital_id: Mapped[UUID] = mapped_column(ForeignKey("hospitals.hospital_id"), type_=SAUUID(as_uuid=True))
+    department_id: Mapped[UUID | None] = mapped_column(ForeignKey("departments.department_id"), type_=SAUUID(as_uuid=True), nullable=True)
     employee_code: Mapped[str] = mapped_column(String(40))
     full_name: Mapped[str] = mapped_column(String(160))
     staff_type: Mapped[str] = mapped_column(String(30))
@@ -83,10 +102,10 @@ class Staff(Base):
 
 class Equipment(Base):
     __tablename__ = "equipment"
-    id: Mapped[str] = mapped_column("equipment_id", primary_key=True, server_default="gen_random_uuid()")
-    hospital_id: Mapped[str] = mapped_column(ForeignKey("hospitals.hospital_id"))
-    department_id: Mapped[str | None] = mapped_column(ForeignKey("departments.department_id"))
-    equipment_type_id: Mapped[str] = mapped_column(ForeignKey("equipment_types.equipment_type_id"))
+    id: Mapped[UUID] = mapped_column("equipment_id", SAUUID(as_uuid=True), primary_key=True, server_default=text("gen_random_uuid()"))
+    hospital_id: Mapped[UUID] = mapped_column(ForeignKey("hospitals.hospital_id"), type_=SAUUID(as_uuid=True))
+    department_id: Mapped[UUID | None] = mapped_column(ForeignKey("departments.department_id"), type_=SAUUID(as_uuid=True), nullable=True)
+    equipment_type_id: Mapped[UUID] = mapped_column(ForeignKey("equipment_types.equipment_type_id"), type_=SAUUID(as_uuid=True))
     name: Mapped[str | None] = mapped_column(String(100))
     total_units: Mapped[int] = mapped_column(Integer, default=1)
     in_use_units: Mapped[int] = mapped_column(Integer, default=0)
@@ -96,7 +115,7 @@ class Equipment(Base):
 
 class HistoricalMetric(Base):
     __tablename__ = "historical_metrics"
-    id: Mapped[str] = mapped_column("metric_id", primary_key=True, server_default="gen_random_uuid()")
+    id: Mapped[UUID] = mapped_column("metric_id", SAUUID(as_uuid=True), primary_key=True, server_default=text("gen_random_uuid()"))
     department_type: Mapped[DepartmentType] = mapped_column(SAEnum(DepartmentType, name="department_type", native_enum=True, create_type=False), index=True)
     timestamp: Mapped[datetime] = mapped_column(DateTime(timezone=True), index=True)
     arrivals: Mapped[int] = mapped_column(Integer, default=0)
@@ -112,9 +131,9 @@ class HistoricalMetric(Base):
 
 class Alert(Base):
     __tablename__ = "alerts"
-    id: Mapped[str] = mapped_column("alert_id", primary_key=True, server_default="gen_random_uuid()")
-    hospital_id: Mapped[str] = mapped_column(ForeignKey("hospitals.hospital_id"))
-    department_id: Mapped[str | None] = mapped_column(ForeignKey("departments.department_id"))
+    id: Mapped[UUID] = mapped_column("alert_id", SAUUID(as_uuid=True), primary_key=True, server_default=text("gen_random_uuid()"))
+    hospital_id: Mapped[UUID] = mapped_column(ForeignKey("hospitals.hospital_id"), type_=SAUUID(as_uuid=True))
+    department_id: Mapped[UUID | None] = mapped_column(ForeignKey("departments.department_id"), type_=SAUUID(as_uuid=True), nullable=True)
     alert_type: Mapped[str] = mapped_column(String(80))
     severity: Mapped[str] = mapped_column(String(30))
     status: Mapped[str] = mapped_column(String(30), default="open")
@@ -124,19 +143,19 @@ class Alert(Base):
 
 class Hospital(Base):
     __tablename__ = "hospitals"
-    id: Mapped[str] = mapped_column("hospital_id", primary_key=True)
+    id: Mapped[UUID] = mapped_column("hospital_id", SAUUID(as_uuid=True), primary_key=True)
     name: Mapped[str] = mapped_column(String(160))
 
 class EquipmentType(Base):
     __tablename__ = "equipment_types"
-    id: Mapped[str] = mapped_column("equipment_type_id", primary_key=True)
+    id: Mapped[UUID] = mapped_column("equipment_type_id", SAUUID(as_uuid=True), primary_key=True)
     name: Mapped[str] = mapped_column(String(100))
 
 class Recommendation(Base):
     __tablename__ = "recommendations"
-    id: Mapped[str] = mapped_column("recommendation_id", primary_key=True)
-    hospital_id: Mapped[str] = mapped_column(ForeignKey("hospitals.hospital_id"))
-    department_id: Mapped[str | None] = mapped_column(ForeignKey("departments.department_id"))
+    id: Mapped[UUID] = mapped_column("recommendation_id", SAUUID(as_uuid=True), primary_key=True)
+    hospital_id: Mapped[UUID] = mapped_column(ForeignKey("hospitals.hospital_id"), type_=SAUUID(as_uuid=True))
+    department_id: Mapped[UUID | None] = mapped_column(ForeignKey("departments.department_id"), type_=SAUUID(as_uuid=True), nullable=True)
     title: Mapped[str] = mapped_column(String(180))
     action: Mapped[str] = mapped_column(Text)
     rationale: Mapped[str | None] = mapped_column(Text)

@@ -188,6 +188,22 @@ export default function App() {
   const page = useMemo(() => { if (!user) return null; if (path === '/') return <HomePage onSelect={setSelectedRec} />; if (path === '/dashboard') return <DashboardPage onSelect={setSelectedRec} />; if (path === '/admin') return <AdminUsers currentUser={user} />; if (path.startsWith('/departments/')) return <DepartmentPage slug={path.split('/')[2]} />; if (path === '/resources') return <ResourcesPage />; if (path === '/forecast') return <ForecastPage />; if (path === '/simulator') return <SurgeSimulator />; if (path === '/digital-twin') return <DigitalTwinGraph />; if (path === '/injury-detection') return <InjuryPage />; if (path === '/recommendations') return <RecommendationsPage onSelect={setSelectedRec} />; return <GenericPage path={path} onSelect={setSelectedRec} />; }, [path, user]);
   useEffect(() => { const click = (event: MouseEvent) => { const target = (event.target as HTMLElement).closest('a'); if (target?.origin === window.location.origin && target.pathname.startsWith('/')) { event.preventDefault(); window.history.pushState({}, '', target.pathname); setPath(target.pathname); setMobileOpen(false); window.scrollTo({ top: 0, behavior: 'smooth' }); } }; document.addEventListener('click', click); return () => document.removeEventListener('click', click); }, []);
   if (user === undefined) return <div className="auth-loading">Loading secure workspace…</div>;
-  if (!user) return <AuthExperience mode={path === '/register' ? 'register' : 'login'} onAuthenticated={(account) => { setUser(account); window.history.replaceState({}, '', '/dashboard'); setPath('/dashboard'); }} />;
+  if (!user) {
+    return <div className="auth-landing-shell">
+      <div className="auth-landing-background">
+        <HomePage onSelect={setSelectedRec} />
+      </div>
+      <div className="auth-overlay">
+        <AuthExperience
+          mode={path === '/register' ? 'register' : 'login'}
+          onAuthenticated={(account) => {
+            setUser(account);
+            window.history.replaceState({}, '', '/dashboard');
+            setPath('/dashboard');
+          }}
+        />
+      </div>
+    </div>;
+  }
   return <div className="app-shell"><Sidebar collapsed={collapsed} setCollapsed={setCollapsed} mobileOpen={mobileOpen} closeMobile={() => setMobileOpen(false)} onSettings={() => setDrawer('settings')} onProfile={() => setDrawer('profile')} currentPath={path} /><main className={cx('main-content', collapsed && 'sidebar-collapsed')}><Topbar onMenu={() => setMobileOpen(true)} onSettings={() => setDrawer('settings')} onProfile={() => setDrawer('profile')} /><div className="page-content">{page}</div></main><SlideOver kind={drawer === 'profile' ? 'profile' : null} close={() => setDrawer(null)} />{drawer === 'settings' && <><div className="settings-overlay" onClick={() => setDrawer(null)} /><WorkspaceSettings close={() => setDrawer(null)} /></>}{selectedRec && <motion.div className="toast" initial={{ y: 80, opacity: 1 }} animate={{ y: 0, opacity: 1 }}><div className="toast-icon"><BrainCircuit size={18} /></div><div><strong>Recommendation selected</strong><span>{selectedRec}</span></div><button className="icon-button" onClick={() => setSelectedRec(null)}><X size={15} /></button></motion.div>}</div>;
 }
