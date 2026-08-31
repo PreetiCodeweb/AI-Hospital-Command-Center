@@ -37,6 +37,7 @@ CREATE TABLE departments (
     name VARCHAR(120) NOT NULL,
     code VARCHAR(30) NOT NULL,
     department_type department_type NOT NULL,
+    type department_type NOT NULL,
     capacity INTEGER NOT NULL DEFAULT 0 CHECK (capacity >= 0),
     is_active BOOLEAN NOT NULL DEFAULT TRUE,
     created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
@@ -52,6 +53,7 @@ CREATE TABLE app_users (
     full_name VARCHAR(160) NOT NULL,
     role user_role NOT NULL,
     password_hash TEXT NOT NULL,
+    hashed_password TEXT NOT NULL,
     is_active BOOLEAN NOT NULL DEFAULT TRUE,
     is_verified BOOLEAN NOT NULL DEFAULT FALSE,
     verification_token_hash VARCHAR(64),
@@ -104,6 +106,7 @@ CREATE TABLE staff_shifts (
 
 CREATE TABLE beds (
     bed_id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    id UUID GENERATED ALWAYS AS (bed_id) STORED UNIQUE,
     department_id UUID NOT NULL REFERENCES departments(department_id),
     bed_number VARCHAR(20) NOT NULL,
     bed_type bed_type NOT NULL,
