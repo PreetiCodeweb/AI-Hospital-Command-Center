@@ -1,1 +1,0 @@
-export { getRecommendations } from '../recommendationService';

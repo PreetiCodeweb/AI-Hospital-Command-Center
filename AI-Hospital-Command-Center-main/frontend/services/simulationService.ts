@@ -1,1 +1,0 @@
-export { runSimulation } from '../simulationService';

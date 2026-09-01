@@ -1,1 +1,0 @@
-export { getDashboard } from '../dashboardService';

@@ -1,8 +1,0 @@
-.page-header { min-width: 0; }
-.page-header > div,
-.page-header > .range-tabs,
-.page-header > .header-controls { min-width: 0; }
-.range-tabs { max-width: 100%; overflow-x: auto; }
-@media (max-width: 760px) {
-  .page-header > .range-tabs { width: 100%; }
-}

@@ -1,1 +1,0 @@
-export { getResources } from '../resourceService';

@@ -1,3 +1,0 @@
-.graph-mode-tabs { display:flex; align-items:center; gap:4px; padding:4px; background:#091628; border:1px solid var(--line); border-radius:8px; }
-.graph-mode-tabs button { border:0; background:transparent; color:var(--muted); padding:7px 10px; font-size:11px; border-radius:5px; white-space:nowrap; }
-.graph-mode-tabs button.selected { background:#17334a; color:var(--teal); }
