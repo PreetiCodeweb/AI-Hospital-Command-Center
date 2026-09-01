@@ -36,6 +36,11 @@ class UserProfileUpdate(BaseModel):
     full_name: str = Field(min_length=2, max_length=160)
 
 
+class ChangePasswordRequest(BaseModel):
+    old_password: str = Field(min_length=8, max_length=72)
+    new_password: str = Field(min_length=8, max_length=72)
+
+
 class AdminUserCreate(UserCreate):
     """A user created by an authenticated administrator."""
     role: str = "operations_manager"

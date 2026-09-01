@@ -73,6 +73,103 @@ async def injury_analysis(file: UploadFile = File(...)):
         "message": "Image received for authorized clinical review. No diagnosis was generated.",
     }
 
+
+@router.post("/injury-analysis/upload")
+async def upload_injury_scan(file: UploadFile = File(...), patient_ref: str = "", region_hint: str = ""):
+    """Upload a medical image for injury analysis."""
+    if not file.filename:
+        raise HTTPException(400, "An image file is required")
+    if file.content_type not in {"image/png", "image/jpeg", "image/webp", "application/dicom", "application/octet-stream"}:
+        raise HTTPException(415, "Upload a PNG, JPG, WEBP, or DICOM file")
+    raw = await file.read()
+    if len(raw) > 50 * 1024 * 1024:
+        raise HTTPException(413, "Image exceeds 50 MB limit")
+    
+    from uuid import uuid4
+    from datetime import datetime
+    
+    # Generate mock findings for demo purposes
+    findings = []
+    if region_hint.upper() in {"HEAD", "LEFT_SHOULDER", "RIGHT_SHOULDER", "LEFT_KNEE", "RIGHT_KNEE"}:
+        findings = [
+            {
+                "region": region_hint,
+                "possible_injury": "Contusion (bruise)",
+                "confidence": 0.75,
+                "severity": "MEDIUM",
+                "recommended_action": "Ice application, rest, monitor for swelling"
+            },
+            {
+                "region": region_hint,
+                "possible_injury": "Mild edema",
+                "confidence": 0.62,
+                "severity": "LOW",
+                "recommended_action": "Compression bandage recommended"
+            }
+        ]
+    
+    return {
+        "scan_id": str(uuid4()),
+        "scanned_at": datetime.utcnow().isoformat(),
+        "areas_of_concern": len(findings),
+        "findings": findings,
+        "patient_ref": patient_ref or "ANONYMOUS",
+        "region_hint": region_hint,
+    }
+
+
+@router.post("/injury-analysis/simulate")
+async def simulate_injury_scan(payload: dict):
+    """Run a simulated injury detection scan with mock data."""
+    from uuid import uuid4
+    from datetime import datetime
+    
+    patient_ref = payload.get("patient_ref") or "DEMO-" + str(uuid4())[:8]
+    region_hint = payload.get("simulate_region_hint", "LEFT_KNEE").upper()
+    
+    # Generate realistic mock findings based on region
+    region_injuries = {
+        "HEAD": ["Contusion", "Scalp laceration", "Orbital edema"],
+        "LEFT_SHOULDER": ["Rotator cuff strain", "AC joint separation"],
+        "RIGHT_SHOULDER": ["Rotator cuff strain", "AC joint separation"],
+        "LEFT_FOREARM": ["Fracture", "Muscle strain"],
+        "RIGHT_FOREARM": ["Fracture", "Muscle strain"],
+        "LEFT_KNEE": ["Meniscus tear", "ACL strain", "Patellar subluxation"],
+        "RIGHT_KNEE": ["Meniscus tear", "ACL strain", "Patellar subluxation"],
+        "LEFT_ANKLE": ["Ankle sprain", "Fracture"],
+        "RIGHT_ANKLE": ["Ankle sprain", "Fracture"],
+        "LOWER_BACK": ["Disc herniation", "Muscle strain"],
+    }
+    
+    injuries = region_injuries.get(region_hint, ["Contusion", "Edema"])
+    findings = [
+        {
+            "region": region_hint,
+            "possible_injury": injuries[0],
+            "confidence": 0.78,
+            "severity": "MEDIUM" if len(injuries) > 1 else "LOW",
+            "recommended_action": "Clinical examination recommended; consider imaging if severe"
+        }
+    ]
+    
+    if len(injuries) > 1:
+        findings.append({
+            "region": region_hint,
+            "possible_injury": injuries[1],
+            "confidence": 0.54,
+            "severity": "LOW",
+            "recommended_action": "Monitor for progression"
+        })
+    
+    return {
+        "scan_id": str(uuid4()),
+        "scanned_at": datetime.utcnow().isoformat(),
+        "areas_of_concern": len(findings),
+        "findings": findings,
+        "patient_ref": patient_ref,
+        "region_hint": region_hint,
+    }
+
 @router.post("/optimize", response_model=OptimizationResponse)
 def optimize(payload: OptimizationRequest, db: Session = Depends(get_db)):
     return optimize_department(db, payload.department_type, payload.predicted_demand_beds)

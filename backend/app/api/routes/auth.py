@@ -14,7 +14,7 @@ from app.core.security import (
 )
 from app.database.session import get_db
 from app.models.models import User
-from app.schemas.schemas import AdminUserCreate, Token, UserCreate, UserProfileUpdate, UserOut
+from app.schemas.schemas import AdminUserCreate, ChangePasswordRequest, Token, UserCreate, UserProfileUpdate, UserOut
 
 router = APIRouter(prefix="/auth", tags=["Authentication"])
 
@@ -191,3 +191,41 @@ def update_me(
     db.commit()
     db.refresh(current_user)
     return current_user
+
+
+@router.post("/logout", status_code=status.HTTP_200_OK)
+def logout(current_user: User = Depends(get_current_user)):
+    """Logout endpoint - client should discard the access token."""
+    return {"message": "Logged out successfully", "user_id": current_user.id}
+
+
+@router.post("/refresh", response_model=Token)
+def refresh_token(current_user: User = Depends(get_current_user)):
+    """Refresh access token for authenticated users."""
+    return Token(access_token=create_access_token(current_user.email))
+
+
+@router.post("/change-password", status_code=status.HTTP_200_OK)
+def change_password(
+    payload: ChangePasswordRequest,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    """Change password for the authenticated user."""
+    if not verify_password(payload.old_password, current_user.hashed_password):
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Incorrect password",
+        )
+    
+    if len(payload.new_password) < 8:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Password must be at least 8 characters long",
+        )
+    
+    current_user.hashed_password = hash_password(payload.new_password)
+    current_user.password_hash = hash_password(payload.new_password)
+    db.commit()
+    
+    return {"message": "Password changed successfully"}

@@ -3,6 +3,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from app.core.config import get_settings
+from app.core.middleware import ErrorHandlingMiddleware
 from app.database.session import Base, SessionLocal, engine
 from app.models import models  # register models
 from app.api.routes import auth, dashboard, forecast, simulation, operations, admin
@@ -28,6 +29,8 @@ app = FastAPI(
     lifespan=lifespan,
 )
 
+# Add middleware
+app.add_middleware(ErrorHandlingMiddleware)
 app.add_middleware(
     CORSMiddleware,
     allow_origins=settings.cors_list,
@@ -37,9 +40,9 @@ app.add_middleware(
 )
 
 app.include_router(auth.router, prefix="/api/v1")
-app.include_router(dashboard.router, prefix="/api")
-app.include_router(forecast.router, prefix="/api")
-app.include_router(simulation.router, prefix="/api")
+app.include_router(dashboard.router, prefix="/api/v1")
+app.include_router(forecast.router, prefix="/api/v1")
+app.include_router(simulation.router, prefix="/api/v1")
 app.include_router(operations.router, prefix="/api/v1")
 app.include_router(admin.router, prefix="/api/v1")
 
