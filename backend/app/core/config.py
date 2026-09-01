@@ -5,6 +5,7 @@ from pydantic_settings import BaseSettings, SettingsConfigDict
 class Settings(BaseSettings):
     APP_NAME: str = "AI Hospital Command Center"
     APP_VERSION: str = "1.0.0"
+    API_V1_PREFIX: str = "/api/v1"
     ENVIRONMENT: str = "development"
     DATABASE_URL: str = "postgresql+psycopg://hospital:hospital_dev_password@localhost:5433/hospital_command_center"
     SECRET_KEY: str = "change-this-development-secret"
@@ -15,12 +16,14 @@ class Settings(BaseSettings):
     MODEL_ARTIFACT_DIR: Path = Path("data/models")
     MIN_TRAINING_ROWS: int = 72
     FRONTEND_URL: str = "http://localhost:3000"
-    SMTP_HOST: str = "localhost"
-    SMTP_PORT: int = 587
+    # Email is not required for the command-center or injury-scan workflows.
+    # Keep these optional so a local/dev API can boot without mail credentials.
+    SMTP_HOST: str = ""
+    SMTP_PORT: int = 465
     SMTP_USERNAME: str = ""
     SMTP_PASSWORD: str = ""
-    SMTP_FROM_EMAIL: str = "noreply@example.com"
-    model_config = SettingsConfigDict(env_file=".env", extra="ignore", env_file_encoding="utf-8")
+    SMTP_FROM_EMAIL: str = ""
+    model_config = SettingsConfigDict(env_file=".env", extra="ignore")
 
     @property
     def cors_list(self) -> list[str]:
