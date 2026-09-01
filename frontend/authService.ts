@@ -21,7 +21,31 @@ export async function register(input: RegistrationInput): Promise<AppUser> {
 }
 
 export function logout() {
-  window.localStorage.removeItem('access_token');
+  try {
+    // Call backend logout endpoint
+    apiRequest('/api/v1/auth/logout', { method: 'POST' }).catch(() => {
+      // Ignore errors from logout endpoint
+    });
+  } finally {
+    // Always clear local storage
+    window.localStorage.removeItem('access_token');
+  }
+}
+
+export async function refreshToken(): Promise<TokenResponse> {
+  const token = await apiRequest<TokenResponse>('/api/v1/auth/refresh', { 
+    method: 'POST' 
+  });
+  window.localStorage.setItem('access_token', token.access_token);
+  return token;
+}
+
+export async function changePassword(oldPassword: string, newPassword: string): Promise<{ message: string }> {
+  return apiRequest('/api/v1/auth/change-password', {
+    method: 'POST',
+    body: JSON.stringify({ old_password: oldPassword, new_password: newPassword }),
+    headers: { 'Content-Type': 'application/json' },
+  });
 }
 
 export function getCurrentUser() {
