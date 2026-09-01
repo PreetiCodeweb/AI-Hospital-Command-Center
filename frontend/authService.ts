@@ -3,6 +3,7 @@ import { apiRequest } from './apiClient';
 type TokenResponse = { access_token: string; token_type: string };
 export type AppUser = { id: string; email: string; full_name: string; role: string };
 export type RegistrationInput = Pick<AppUser, 'email' | 'full_name'> & { password: string };
+export type ProfileUpdateInput = { full_name: string };
 
 export async function login(email: string, password: string): Promise<TokenResponse> {
   const body = new URLSearchParams({ username: email, password });
@@ -25,4 +26,11 @@ export function logout() {
 
 export function getCurrentUser() {
   return apiRequest('/api/v1/auth/me');
+}
+
+export function updateCurrentUserProfile(input: ProfileUpdateInput) {
+  return apiRequest<AppUser>('/api/v1/auth/me', {
+    method: 'PATCH',
+    body: JSON.stringify(input),
+  });
 }

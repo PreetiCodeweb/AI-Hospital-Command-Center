@@ -14,7 +14,7 @@ from app.core.security import (
 )
 from app.database.session import get_db
 from app.models.models import User
-from app.schemas.schemas import AdminUserCreate, Token, UserCreate, UserOut
+from app.schemas.schemas import AdminUserCreate, Token, UserCreate, UserProfileUpdate, UserOut
 
 router = APIRouter(prefix="/auth", tags=["Authentication"])
 
@@ -178,4 +178,16 @@ def login(
 
 @router.get("/me", response_model=UserOut)
 def me(current_user: User = Depends(get_current_user)):
+    return current_user
+
+
+@router.patch("/me", response_model=UserOut)
+def update_me(
+    payload: UserProfileUpdate,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    current_user.full_name = payload.full_name.strip()
+    db.commit()
+    db.refresh(current_user)
     return current_user
