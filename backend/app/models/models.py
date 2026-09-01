@@ -83,7 +83,16 @@ class Bed(Base):
     department_id: Mapped[UUID] = mapped_column(ForeignKey("departments.department_id"), type_=SAUUID(as_uuid=True))
     bed_number: Mapped[str] = mapped_column(String(20))
     bed_type: Mapped[str] = mapped_column(String(30))
-    status: Mapped[BedStatus] = mapped_column(SAEnum(BedStatus, name="bed_status", native_enum=True, create_type=False), default=BedStatus.AVAILABLE)
+    status: Mapped[BedStatus] = mapped_column(
+        SAEnum(
+            BedStatus,
+            name="bed_status",
+            native_enum=True,
+            create_type=False,
+            values_callable=lambda enum_values: [item.value for item in enum_values],
+        ),
+        default=BedStatus.AVAILABLE,
+    )
     floor: Mapped[str | None] = mapped_column(String(20))
     department: Mapped[Department] = relationship(back_populates="beds")
 
