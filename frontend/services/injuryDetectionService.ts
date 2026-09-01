@@ -1,0 +1,1 @@
+export { submitInjuryAnalysis } from '../injuryDetectionService';

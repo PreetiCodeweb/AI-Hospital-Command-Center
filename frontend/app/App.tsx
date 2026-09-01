@@ -1,0 +1,2931 @@
+"use client";
+
+import {
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+  type ReactNode,
+} from "react";
+import { motion, AnimatePresence } from "framer-motion";
+import {
+  Activity,
+  AlertTriangle,
+  ArrowRight,
+  BarChart3,
+  Bed,
+  Bell,
+  BrainCircuit,
+  Building2,
+  CheckCircle2,
+  ChevronDown,
+  ChevronLeft,
+  ChevronRight,
+  CircleHelp,
+  ClipboardList,
+  Clock3,
+  Crosshair,
+  Database,
+  FileSearch,
+  Gauge,
+  HeartPulse,
+  Hospital,
+  LayoutDashboard,
+  Menu,
+  Monitor,
+  MoreHorizontal,
+  Network,
+  PanelLeftClose,
+  PanelLeftOpen,
+  Pause,
+  Play,
+  Plus,
+  Radar,
+  RefreshCw,
+  ScanLine,
+  Settings,
+  ShieldCheck,
+  SlidersHorizontal,
+  Stethoscope,
+  Target,
+  TrendingDown,
+  TrendingUp,
+  UserRound,
+  Users,
+  X,
+  Zap,
+} from "lucide-react";
+import {
+  Area,
+  AreaChart,
+  Bar,
+  BarChart,
+  CartesianGrid,
+  Cell,
+  Line,
+  LineChart,
+  Pie,
+  PieChart,
+  ResponsiveContainer,
+  Tooltip,
+  XAxis,
+  YAxis,
+} from "recharts";
+import { DigitalTwinGraph } from "../components/DigitalTwinGraph";
+import { WorkspaceSettings } from "../components/WorkspaceSettings";
+import { SurgeSimulator } from "../components/SurgeSimulator";
+import { AdminUsers, AuthExperience } from "../components/AuthExperience";
+import { getCurrentUser, logout, type AppUser } from "../authService";
+
+const navItems = [
+  ["/", "Home", Hospital],
+  ["/dashboard", "Dashboard", LayoutDashboard],
+  ["/resources", "Resources", Bed],
+  ["/forecast", "Forecast", BarChart3],
+  ["/simulator", "Simulator", SlidersHorizontal],
+  ["/digital-twin", "Digital Twin", Network],
+  ["/injury-detection", "Injury Detection", ScanLine],
+  ["/recommendations", "Recommendations", Target],
+  ["/admin", "Admin panel", Users],
+] as const;
+const chartData = [
+  { time: "Now", icu: 69, beds: 47, er: 34 },
+  { time: "6 AM", icu: 73, beds: 51, er: 38 },
+  { time: "12 PM", icu: 78, beds: 58, er: 46 },
+  { time: "6 PM", icu: 88, beds: 69, er: 59 },
+  { time: "12 AM", icu: 84, beds: 72, er: 54 },
+  { time: "6 AM", icu: 91, beds: 79, er: 63 },
+];
+const alerts = [
+  {
+    label: "ICU capacity likely to exceed 95%",
+    detail: "Within next 6 hours",
+    tone: "critical",
+    icon: AlertTriangle,
+  },
+  {
+    label: "High emergency influx predicted",
+    detail: "Within next 2 hours",
+    tone: "critical",
+    icon: Zap,
+  },
+  {
+    label: "Ventilator availability low",
+    detail: "Only 8 units remaining",
+    tone: "warning",
+    icon: Activity,
+  },
+  {
+    label: "Nursing staff under high pressure",
+    detail: "Multiple departments affected",
+    tone: "info",
+    icon: Users,
+  },
+];
+const recommendations = [
+  {
+    title: "Reserve 2 ICU beds and prepare ventilators",
+    impact: "High Impact",
+    tone: "critical",
+  },
+  {
+    title: "Augment nursing staff in ER and ICU",
+    impact: "High Impact",
+    tone: "critical",
+  },
+  {
+    title: "Defer 3 low-priority surgeries",
+    impact: "Medium Impact",
+    tone: "warning",
+  },
+  {
+    title: "Activate step-down unit for overflow",
+    impact: "Medium Impact",
+    tone: "warning",
+  },
+];
+const metrics = [
+  {
+    label: "ICU Occupancy",
+    value: "87%",
+    status: "High",
+    trend: "+12%",
+    icon: Bed,
+    tone: "critical",
+  },
+  {
+    label: "Bed Availability",
+    value: "28%",
+    status: "Moderate",
+    trend: "-8%",
+    icon: Hospital,
+    tone: "warning",
+  },
+  {
+    label: "Emergency Load",
+    value: "81%",
+    status: "High",
+    trend: "+15%",
+    icon: Activity,
+    tone: "critical",
+  },
+  {
+    label: "Equipment Status",
+    value: "76%",
+    status: "Good",
+    trend: "-5%",
+    icon: Monitor,
+    tone: "success",
+  },
+  {
+    label: "Staff Availability",
+    value: "64%",
+    status: "Moderate",
+    trend: "No change",
+    icon: Users,
+    tone: "info",
+  },
+];
+const departments = [
+  {
+    name: "Emergency",
+    slug: "emergency",
+    capacity: 81,
+    volume: 142,
+    beds: 18,
+    risk: "High",
+    lead: "Dr. Maya Singh",
+  },
+  {
+    name: "ICU",
+    slug: "icu",
+    capacity: 94,
+    volume: 42,
+    beds: 3,
+    risk: "Critical",
+    lead: "Dr. Arjun Mehta",
+  },
+  {
+    name: "Surgery",
+    slug: "surgery",
+    capacity: 68,
+    volume: 26,
+    beds: 12,
+    risk: "Moderate",
+    lead: "Dr. Elena Roy",
+  },
+  {
+    name: "Radiology",
+    slug: "radiology",
+    capacity: 57,
+    volume: 81,
+    beds: 0,
+    risk: "Normal",
+    lead: "Dr. Vikram Shah",
+  },
+  {
+    name: "General Ward",
+    slug: "general-ward",
+    capacity: 76,
+    volume: 318,
+    beds: 74,
+    risk: "Moderate",
+    lead: "Dr. Nisha Kapoor",
+  },
+  {
+    name: "Pediatrics",
+    slug: "pediatrics",
+    capacity: 48,
+    volume: 63,
+    beds: 31,
+    risk: "Normal",
+    lead: "Dr. Aditi Rao",
+  },
+  {
+    name: "Cardiology",
+    slug: "cardiology",
+    capacity: 72,
+    volume: 58,
+    beds: 16,
+    risk: "Moderate",
+    lead: "Dr. Karan Malhotra",
+  },
+  {
+    name: "Obstetrics & Gynecology",
+    slug: "obstetrics-gynecology",
+    capacity: 61,
+    volume: 39,
+    beds: 22,
+    risk: "Normal",
+    lead: "Dr. Priya Menon",
+  },
+  {
+    name: "Oncology",
+    slug: "oncology",
+    capacity: 66,
+    volume: 47,
+    beds: 19,
+    risk: "Moderate",
+    lead: "Dr. Rhea Thomas",
+  },
+  {
+    name: "Neurology",
+    slug: "neurology",
+    capacity: 53,
+    volume: 34,
+    beds: 21,
+    risk: "Normal",
+    lead: "Dr. Sameer Iyer",
+  },
+  {
+    name: "Orthopedics",
+    slug: "orthopedics",
+    capacity: 69,
+    volume: 51,
+    beds: 17,
+    risk: "Moderate",
+    lead: "Dr. Neha Verma",
+  },
+  {
+    name: "Laboratory",
+    slug: "laboratory",
+    capacity: 44,
+    volume: 214,
+    beds: 0,
+    risk: "Normal",
+    lead: "Dr. Imran Khan",
+  },
+];
+const departmentInsights: Record<
+  string,
+  {
+    view: "acute" | "procedural" | "diagnostic" | "ward";
+    headline: string;
+    primaryLabel: string;
+    secondaryLabel: string;
+    tertiaryLabel: string;
+    primaryValue: string;
+    secondaryValue: string;
+    tertiaryValue: string;
+    queue: [string, string, string][];
+  }
+> = {
+  emergency: {
+    view: "acute",
+    headline: "Protect flow before boarding rises",
+    primaryLabel: "Door-to-clinician",
+    secondaryLabel: "Boarded patients",
+    tertiaryLabel: "Left before seen",
+    primaryValue: "14 min",
+    secondaryValue: "11",
+    tertiaryValue: "1.8%",
+    queue: [
+      ["ESI 1–2", "7 awaiting room", "critical"],
+      ["Admit holds", "11 awaiting bed", "high"],
+      ["Ambulance arrivals", "6 in next hour", "normal"],
+    ],
+  },
+  icu: {
+    view: "acute",
+    headline: "Secure high-acuity capacity",
+    primaryLabel: "Ventilators in use",
+    secondaryLabel: "1:1 assignments",
+    tertiaryLabel: "CLABSI bundle",
+    primaryValue: "34 / 42",
+    secondaryValue: "8",
+    tertiaryValue: "98%",
+    queue: [
+      ["Critical transfers", "2 pending", "critical"],
+      ["Step-down candidates", "4 reviewed", "normal"],
+      ["Safety rounds", "Due in 18 min", "high"],
+    ],
+  },
+  surgery: {
+    view: "procedural",
+    headline: "Keep theatre flow on schedule",
+    primaryLabel: "First-case starts",
+    secondaryLabel: "OR turnover",
+    tertiaryLabel: "Block utilization",
+    primaryValue: "88%",
+    secondaryValue: "31 min",
+    tertiaryValue: "74%",
+    queue: [
+      ["OR 3", "Turnover in progress", "high"],
+      ["OR 6", "First case delayed 12 min", "moderate"],
+      ["PACU", "5 ready for transfer", "normal"],
+    ],
+  },
+  radiology: {
+    view: "diagnostic",
+    headline: "Prioritize time-sensitive imaging",
+    primaryLabel: "STAT report TAT",
+    secondaryLabel: "Unread studies",
+    tertiaryLabel: "Scanner utilization",
+    primaryValue: "27 min",
+    secondaryValue: "19",
+    tertiaryValue: "71%",
+    queue: [
+      ["CT head", "3 STAT studies", "critical"],
+      ["MRI", "7 awaiting read", "moderate"],
+      ["Critical results", "2 acknowledgements due", "high"],
+    ],
+  },
+  "general-ward": {
+    view: "ward",
+    headline: "Coordinate discharges and bed flow",
+    primaryLabel: "Discharge-ready",
+    secondaryLabel: "Expected discharges",
+    tertiaryLabel: "Nurse staffing",
+    primaryValue: "22",
+    secondaryValue: "37",
+    tertiaryValue: "91%",
+    queue: [
+      ["Discharge barriers", "9 need resolution", "high"],
+      ["Bed requests", "14 pending", "moderate"],
+      ["Safety huddles", "3 remaining", "normal"],
+    ],
+  },
+  pediatrics: {
+    view: "ward",
+    headline: "Balance family-centred capacity",
+    primaryLabel: "Isolation rooms",
+    secondaryLabel: "Discharge-ready",
+    tertiaryLabel: "Staff coverage",
+    primaryValue: "6 / 8",
+    secondaryValue: "12",
+    tertiaryValue: "96%",
+    queue: [
+      ["Respiratory cohort", "8 patients", "moderate"],
+      ["Family updates", "6 due this hour", "normal"],
+      ["Transfers", "1 pending", "high"],
+    ],
+  },
+  cardiology: {
+    view: "acute",
+    headline: "Maintain cardiac response readiness",
+    primaryLabel: "Cath lab readiness",
+    secondaryLabel: "Telemetry alerts",
+    tertiaryLabel: "Bed turnaround",
+    primaryValue: "2 / 3",
+    secondaryValue: "6",
+    tertiaryValue: "42 min",
+    queue: [
+      ["STEMI pathway", "1 patient en route", "critical"],
+      ["Telemetry review", "6 alerts", "high"],
+      ["Cath lab", "Next slot 24 min", "normal"],
+    ],
+  },
+  "obstetrics-gynecology": {
+    view: "procedural",
+    headline: "Protect delivery-suite readiness",
+    primaryLabel: "Delivery rooms free",
+    secondaryLabel: "Active labour",
+    tertiaryLabel: "C-section readiness",
+    primaryValue: "3 / 8",
+    secondaryValue: "11",
+    tertiaryValue: "1 room",
+    queue: [
+      ["Triage arrivals", "4 awaiting assessment", "high"],
+      ["Delivery suites", "5 in use", "moderate"],
+      ["Theatre escalation", "Team on standby", "normal"],
+    ],
+  },
+  oncology: {
+    view: "ward",
+    headline: "Coordinate safe treatment capacity",
+    primaryLabel: "Infusion chairs free",
+    secondaryLabel: "Treatment delays",
+    tertiaryLabel: "Supportive-care alerts",
+    primaryValue: "8 / 28",
+    secondaryValue: "3",
+    tertiaryValue: "5",
+    queue: [
+      ["Infusion queue", "6 arrivals in 30 min", "moderate"],
+      ["Lab clearance", "4 pending", "high"],
+      ["Navigation needs", "3 patients", "normal"],
+    ],
+  },
+  neurology: {
+    view: "acute",
+    headline: "Preserve neuro-response capacity",
+    primaryLabel: "Stroke alerts",
+    secondaryLabel: "CT priority queue",
+    tertiaryLabel: "Neuro beds free",
+    primaryValue: "2",
+    secondaryValue: "3",
+    tertiaryValue: "5",
+    queue: [
+      ["Stroke pathway", "1 team activated", "critical"],
+      ["Imaging review", "3 priority scans", "high"],
+      ["Rehab transfers", "2 ready", "normal"],
+    ],
+  },
+  orthopedics: {
+    view: "procedural",
+    headline: "Synchronize theatres and recovery",
+    primaryLabel: "Trauma cases",
+    secondaryLabel: "Theatre turnover",
+    tertiaryLabel: "Rehab-ready",
+    primaryValue: "7",
+    secondaryValue: "35 min",
+    tertiaryValue: "9",
+    queue: [
+      ["Fracture list", "4 awaiting theatre", "high"],
+      ["Implant readiness", "2 checks due", "moderate"],
+      ["Recovery beds", "6 available", "normal"],
+    ],
+  },
+  laboratory: {
+    view: "diagnostic",
+    headline: "Keep critical results moving",
+    primaryLabel: "STAT turnaround",
+    secondaryLabel: "Pending specimens",
+    tertiaryLabel: "Critical calls due",
+    primaryValue: "22 min",
+    secondaryValue: "46",
+    tertiaryValue: "2",
+    queue: [
+      ["Critical values", "2 calls due", "critical"],
+      ["Blood bank", "4 crossmatches pending", "high"],
+      ["Specimen exceptions", "3 need recollection", "moderate"],
+    ],
+  },
+};
+const resources = [
+  ["Beds", "820", "132", "688", "84%", "+18%", "Moderate"],
+  ["Ventilators", "96", "8", "88", "92%", "High", "Critical"],
+  ["Monitors", "410", "63", "347", "85%", "Moderate", "Warning"],
+  ["Wheelchairs", "180", "42", "138", "77%", "Low", "Good"],
+  ["Infusion Pumps", "290", "34", "256", "88%", "Moderate", "Warning"],
+  ["Ambulances", "18", "5", "13", "72%", "Low", "Good"],
+];
+
+function cx(...classes: (string | false | undefined)[]) {
+  return classes.filter(Boolean).join(" ");
+}
+function statusClass(value: string) {
+  return value.toLowerCase().replace(" ", "-");
+}
+function Sparkline({ tone = "teal" }: { tone?: string }) {
+  const points =
+    tone === "critical"
+      ? "0,18 8,20 16,10 24,16 32,6 40,12 48,3 56,9 64,5"
+      : "0,19 8,14 16,16 24,10 32,13 40,6 48,9 56,4 64,6";
+  return (
+    <svg
+      className={cx("sparkline", tone)}
+      viewBox="0 0 64 24"
+      preserveAspectRatio="none"
+    >
+      <polyline
+        points={points}
+        fill="none"
+        stroke="currentColor"
+        strokeWidth="2"
+      />
+    </svg>
+  );
+}
+function Logo() {
+  return (
+    <div className="logo">
+      <div className="logo-mark">
+        <Plus size={24} strokeWidth={2.6} />
+      </div>
+      <div>
+        <strong>MedSync</strong>
+        <span>AI Operations Command Center</span>
+      </div>
+    </div>
+  );
+}
+
+function Sidebar({
+  collapsed,
+  setCollapsed,
+  mobileOpen,
+  closeMobile,
+  onSettings,
+  onProfile,
+  currentPath,
+}: {
+  collapsed: boolean;
+  setCollapsed: (v: boolean) => void;
+  mobileOpen: boolean;
+  closeMobile: () => void;
+  onSettings: () => void;
+  onProfile: () => void;
+  currentPath: string;
+}) {
+  return (
+    <aside
+      className={cx(
+        "sidebar",
+        collapsed && "collapsed",
+        mobileOpen && "mobile-open",
+      )}
+    >
+      <div className="sidebar-top">
+        <Logo />
+        <button
+          className="icon-button sidebar-toggle"
+          onClick={() => setCollapsed(!collapsed)}
+          aria-label="Toggle sidebar"
+        >
+          {collapsed ? (
+            <PanelLeftOpen size={18} />
+          ) : (
+            <PanelLeftClose size={18} />
+          )}
+        </button>
+      </div>
+      <nav className="nav-list">
+        {navItems.map(([href, label, Icon]) => (
+          <a
+            key={href}
+            href={href}
+            onClick={closeMobile}
+            className={cx("nav-item", currentPath === href && "active")}
+          >
+            <Icon size={18} />
+            <span>{label}</span>
+            {label === "Recommendations" && <i className="nav-dot" />}
+          </a>
+        ))}
+      </nav>
+      <div className="sidebar-footer">
+        <div className="system-status">
+          <span className="status-pulse" />
+          <div>
+            <strong>All systems operational</strong>
+            <span>Last updated 10:24 AM</span>
+          </div>
+        </div>
+        <button className="profile-mini" onClick={onProfile}>
+          <div className="avatar">
+            <UserRound size={17} />
+          </div>
+          <div>
+            <strong>Admin User</strong>
+            <span>Hospital Administrator</span>
+          </div>
+          <ChevronDown size={15} />
+        </button>
+        <button className="settings-link" onClick={onSettings}>
+          <Settings size={17} />
+          <span>Settings</span>
+        </button>
+      </div>
+    </aside>
+  );
+}
+
+function Topbar({
+  onMenu,
+  onSettings,
+  onProfile,
+}: {
+  onMenu: () => void;
+  onSettings: () => void;
+  onProfile: () => void;
+}) {
+  return (
+    <header className="topbar">
+      <button
+        className="icon-button mobile-menu"
+        onClick={onMenu}
+        aria-label="Open navigation"
+      >
+        <Menu size={20} />
+      </button>
+      <div className="breadcrumb">
+        <span>Operations</span>
+        <ChevronRight size={14} />
+        <strong>Live command center</strong>
+      </div>
+      <div className="top-actions">
+        <span className="live-label">
+          <span className="status-pulse" /> Live data
+        </span>
+        <button
+          className="icon-button"
+          onClick={onSettings}
+          aria-label="Notifications"
+        >
+          <Bell size={18} />
+          <b>3</b>
+        </button>
+        <button
+          className="user-button"
+          onClick={onProfile}
+          aria-label="Open account"
+        >
+          <div className="avatar">
+            <UserRound size={15} />
+          </div>
+          <span>Admin</span>
+          <ChevronDown size={14} />
+        </button>
+      </div>
+    </header>
+  );
+}
+
+
+function SlideOver({
+  kind,
+  close,
+}: {
+  kind: "settings" | "profile" | null;
+  close: () => void;
+}) {
+  const [section, setSection] = useState("Profile information");
+  const [saved, setSaved] = useState(false);
+  const [alerts, setAlerts] = useState(true);
+  const rows = [
+    "Profile information",
+    "Organization",
+    "Notification preferences",
+    "Security",
+    "Activity log",
+  ];
+  const content =
+    section === "Profile information" ? (
+      <div className="account-form">
+        <label>
+          Display name
+          <input defaultValue="Admin User" />
+        </label>
+        <label>
+          Email
+          <input defaultValue="admin@northstarmedical.example" type="email" />
+        </label>
+        <label>
+          Role
+          <input defaultValue="Hospital Administrator" disabled />
+        </label>
+        <button className="primary-button wide" onClick={() => setSaved(true)}>
+          {saved ? (
+            <>
+              <CheckCircle2 size={16} /> Changes saved
+            </>
+          ) : (
+            "Save changes"
+          )}
+        </button>
+      </div>
+    ) : section === "Organization" ? (
+      <div className="account-info">
+        <strong>Northstar Medical Center</strong>
+        <span>Operational intelligence workspace</span>
+        <div>
+          <b>24</b>
+          <small>Connected data sources</small>
+        </div>
+        <div>
+          <b>12</b>
+          <small>Department workspaces</small>
+        </div>
+      </div>
+    ) : section === "Notification preferences" ? (
+      <div className="account-info">
+        <strong>Operational notifications</strong>
+        <span>Choose how account alerts are delivered.</span>
+        <button
+          className={cx("switch", alerts && "on")}
+          onClick={() => setAlerts(!alerts)}
+          aria-label="Toggle operational alerts"
+        >
+          <span />
+        </button>
+        <p>
+          {alerts
+            ? "Critical operational alerts are enabled."
+            : "Operational alerts are paused."}
+        </p>
+      </div>
+    ) : section === "Security" ? (
+      <div className="account-info">
+        <strong>Account security</strong>
+        <span>Multi-factor authentication is enabled.</span>
+        <div>
+          <b>Active</b>
+          <small>Session protection</small>
+        </div>
+        <button className="secondary-button" onClick={() => setSaved(true)}>
+          Refresh session
+        </button>
+      </div>
+    ) : (
+      <div className="account-info">
+        <strong>Recent activity</strong>
+        <span>Today, 10:24 AM — Account accessed from this workspace.</span>
+        <span>Today, 10:18 AM — Dashboard viewed.</span>
+        <span>Yesterday, 4:42 PM — Settings updated.</span>
+      </div>
+    );
+  if (!kind) return null;
+  return (
+    <AnimatePresence>
+      <>
+        <motion.div
+          className="drawer-backdrop"
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          exit={{ opacity: 0 }}
+          onClick={close}
+        />
+        <motion.aside
+          className="slide-over account-drawer"
+          initial={{ x: "100%" }}
+          animate={{ x: 0 }}
+          exit={{ x: "100%" }}
+          transition={{ duration: 0.25 }}
+        >
+          <div className="drawer-head">
+            <div>
+              <span className="eyebrow">Account</span>
+              <h2>Admin User</h2>
+            </div>
+            <button
+              className="icon-button"
+              onClick={close}
+              aria-label="Close account"
+            >
+              <X size={18} />
+            </button>
+          </div>
+          <div className="profile-hero">
+            <div className="avatar large">
+              <UserRound size={27} />
+            </div>
+            <div>
+              <h3>Admin User</h3>
+              <p>Hospital Administrator</p>
+            </div>
+          </div>
+          <div className="account-nav">
+            {rows.map((row) => (
+              <button
+                key={row}
+                className={section === row ? "selected" : ""}
+                onClick={() => {
+                  setSection(row);
+                  setSaved(false);
+                }}
+              >
+                <span>{row}</span>
+                <ChevronRight size={16} />
+              </button>
+            ))}
+          </div>
+          <div className="account-content">{content}</div>
+        </motion.aside>
+      </>
+    </AnimatePresence>
+  );
+}
+
+function PageHeader({
+  eyebrow,
+  title,
+  subtitle,
+  action,
+}: {
+  eyebrow?: string;
+  title: string;
+  subtitle?: string;
+  action?: React.ReactNode;
+}) {
+  return (
+    <div className="page-header">
+      <div>
+        <span className="eyebrow">{eyebrow || "MedSync intelligence"}</span>
+        <h1>{title}</h1>
+        {subtitle && <p>{subtitle}</p>}
+      </div>
+      {action}
+    </div>
+  );
+}
+function SectionTitle({
+  title,
+  detail,
+  action,
+}: {
+  title: string;
+  detail?: string;
+  action?: React.ReactNode;
+}) {
+  return (
+    <div className="section-title">
+      <div>
+        <h2>{title}</h2>
+        {detail && <span>{detail}</span>}
+      </div>
+      {action}
+    </div>
+  );
+}
+function MetricCard({ metric }: { metric: (typeof metrics)[number] }) {
+  const Icon = metric.icon;
+  return (
+    <motion.div className="metric-card" whileHover={{ y: -3 }}>
+      <div className={cx("metric-icon", metric.tone)}>
+        <Icon size={19} />
+      </div>
+      <div className="metric-copy">
+        <span>{metric.label}</span>
+        <div>
+          <strong>{metric.value}</strong>
+          <em className={metric.tone}>{metric.status}</em>
+        </div>
+        <small
+          className={
+            metric.trend.startsWith("+")
+              ? "up"
+              : metric.trend.startsWith("-")
+                ? "down"
+                : ""
+          }
+        >
+          {metric.trend !== "No change" &&
+            (metric.trend.startsWith("+") ? (
+              <TrendingUp size={13} />
+            ) : (
+              <TrendingDown size={13} />
+            ))}{" "}
+          {metric.trend} <span>vs yesterday</span>
+        </small>
+      </div>
+      <Sparkline tone={metric.tone} />
+    </motion.div>
+  );
+}
+function DemandChart({ forecast = false }: { forecast?: boolean }) {
+  return (
+    <div className="chart-wrap">
+      <ResponsiveContainer width="100%" height="100%">
+        <AreaChart
+          data={chartData}
+          margin={{ top: 10, right: 6, left: -25, bottom: 0 }}
+        >
+          <defs>
+            <linearGradient id="icuFill" x1="0" y1="0" x2="0" y2="1">
+              <stop offset="0%" stopColor="#f05b62" stopOpacity={0.2} />
+              <stop offset="100%" stopColor="#f05b62" stopOpacity={0} />
+            </linearGradient>
+            <linearGradient id="blueFill" x1="0" y1="0" x2="0" y2="1">
+              <stop offset="0%" stopColor="#38bdf8" stopOpacity={0.17} />
+              <stop offset="100%" stopColor="#38bdf8" stopOpacity={0} />
+            </linearGradient>
+          </defs>
+          <CartesianGrid stroke="#ffffff0b" vertical={false} />
+          <XAxis
+            dataKey="time"
+            tick={{ fill: "#7f92ad", fontSize: 11 }}
+            axisLine={false}
+            tickLine={false}
+          />
+          <YAxis
+            domain={[0, 100]}
+            tick={{ fill: "#647792", fontSize: 10 }}
+            axisLine={false}
+            tickLine={false}
+            tickFormatter={(v) => `${v}%`}
+          />
+          <Tooltip
+            contentStyle={{
+              background: "#101e33",
+              border: "1px solid #29405d",
+              borderRadius: 8,
+              color: "#eef5ff",
+            }}
+          />
+          <Area
+            type="monotone"
+            dataKey="icu"
+            stroke="#ef646b"
+            fill="url(#icuFill)"
+            strokeWidth={2}
+            name="ICU demand"
+          />
+          <Area
+            type="monotone"
+            dataKey="beds"
+            stroke="#38bdf8"
+            fill="url(#blueFill)"
+            strokeWidth={2}
+            name="Bed demand"
+          />
+          <Line
+            type="monotone"
+            dataKey="er"
+            stroke="#20d6c7"
+            strokeWidth={2}
+            dot={false}
+            name="ER visits"
+          />
+          {forecast && (
+            <Line
+              type="monotone"
+              dataKey="icu"
+              stroke="#a78bfa"
+              strokeDasharray="5 5"
+              strokeWidth={2}
+              dot={false}
+              name="Predicted"
+            />
+          )}
+        </AreaChart>
+      </ResponsiveContainer>
+    </div>
+  );
+}
+function Legend() {
+  return (
+    <div className="legend">
+      <span>
+        <i className="red" />
+        ICU demand
+      </span>
+      <span>
+        <i className="blue" />
+        Bed demand
+      </span>
+      <span>
+        <i className="teal" />
+        ER visits
+      </span>
+    </div>
+  );
+}
+function AlertList({
+  dismissed,
+  onDismiss,
+}: {
+  dismissed: Set<string>;
+  onDismiss: (label: string) => void;
+}) {
+  const visible = alerts.filter((alert) => !dismissed.has(alert.label));
+  if (visible.length === 0) {
+    return (
+      <div className="alert-list alert-list-empty">
+        <CheckCircle2 size={18} />
+        <span>You're all caught up. No active alerts.</span>
+      </div>
+    );
+  }
+  return (
+    <div className="alert-list">
+      {visible.map(({ label, detail, tone, icon: Icon }) => (
+        <div className="alert-row" key={label}>
+          <div className={cx("alert-icon", tone)}>
+            <Icon size={16} />
+          </div>
+          <div>
+            <strong>{label}</strong>
+            <span>{detail}</span>
+          </div>
+          <button
+            className="icon-button muted-icon"
+            aria-label={`Dismiss alert: ${label}`}
+            onClick={() => onDismiss(label)}
+          >
+            <X size={16} />
+          </button>
+        </div>
+      ))}
+    </div>
+  );
+}
+function RecommendationList({
+  onSelect,
+}: {
+  onSelect?: (title: string) => void;
+}) {
+  return (
+    <div className="recommendation-list">
+      {recommendations.map((item, i) => (
+        <button
+          className="recommendation-row"
+          key={item.title}
+          onClick={() => onSelect?.(item.title)}
+        >
+          <b>0{i + 1}</b>
+          <span>{item.title}</span>
+          <em className={item.tone}>{item.impact}</em>
+          <ChevronRight size={15} />
+        </button>
+      ))}
+    </div>
+  );
+}
+
+function HomePage({ onSelect }: { onSelect: (title: string) => void }) {
+  const [dismissedAlerts, setDismissedAlerts] = useState<Set<string>>(
+    () => new Set(),
+  );
+  const activeAlertCount = alerts.length - dismissedAlerts.size;
+  return (
+    <>
+      <section className="hero-grid">
+        <div className="hero-copy">
+          <span className="eyebrow">Operational intelligence, upstream</span>
+          <h1>
+            AI Hospital
+            <br />
+            <span>Operations</span>
+            <br />
+            Command Center
+          </h1>
+          <div className="hero-verb">
+            <b>Predict</b>
+            <i /> <b>Simulate</b>
+            <i /> <b>Optimize</b>
+            <i /> <b>Act</b>
+          </div>
+          <p>
+            Forecast demand, simulate surge scenarios, optimize resources, and
+            surface explainable recommendations for authorized hospital staff.
+          </p>
+          <div className="hero-actions">
+            <a href="/dashboard" className="primary-button">
+              Enter Command Center <ArrowRight size={17} />
+            </a>
+            <a href="/simulator" className="secondary-button">
+              Run Simulation <TrendingUp size={16} />
+            </a>
+          </div>
+          <div className="hero-footnote">
+            <ShieldCheck size={16} />
+            <span>
+              Decision support for human review. Not a clinical diagnostic tool.
+            </span>
+          </div>
+        </div>
+        <div className="hero-visual">
+          <div className="hospital-art">
+            <div className="art-grid" />
+            <Building2 size={100} strokeWidth={0.7} />
+            <div className="hospital-label">
+              <span>MN / 04</span>
+              <strong>Northstar Medical Center</strong>
+              <small>Operational twin online</small>
+            </div>
+            <div className="risk-card">
+              <div className="risk-card-head">
+                <span>Overall hospital risk</span>
+                <Gauge size={18} />
+              </div>
+              <strong>HIGH RISK</strong>
+              <Sparkline tone="critical" />
+              <span className="risk-action">
+                <i /> Action recommended
+              </span>
+            </div>
+            <div className="scan-line" />
+          </div>
+        </div>
+      </section>
+      <div className="metrics-grid">
+        {metrics.map((metric) => (
+          <MetricCard metric={metric} key={metric.label} />
+        ))}
+      </div>
+      <section className="content-grid three">
+        <div className="panel chart-panel span-2">
+          <SectionTitle
+            title="AI demand forecast"
+            detail="Next 24 hours"
+            action={
+              <a href="/forecast" className="text-link">
+                View full forecast <ArrowRight size={15} />
+              </a>
+            }
+          />
+          <Legend />
+          <DemandChart />
+        </div>
+        <div className="panel">
+          <SectionTitle
+            title="Active alerts"
+            detail={
+              activeAlertCount > 0
+                ? `${activeAlertCount} requiring attention`
+                : "All clear"
+            }
+            action={
+              <button
+                className="icon-button"
+                aria-label="Mark all alerts as read"
+                disabled={activeAlertCount === 0}
+                onClick={() =>
+                  setDismissedAlerts(new Set(alerts.map((a) => a.label)))
+                }
+              >
+                <CheckCircle2 size={18} />
+              </button>
+            }
+          />
+          <AlertList
+            dismissed={dismissedAlerts}
+            onDismiss={(label) =>
+              setDismissedAlerts((prev) => new Set(prev).add(label))
+            }
+          />
+          <a href="/dashboard" className="panel-link">
+            View all alerts <ArrowRight size={15} />
+          </a>
+        </div>
+        <div className="panel span-2">
+          <SectionTitle
+            title="AI top recommendations"
+            detail="Prioritized for your review"
+            action={
+              <a href="/recommendations" className="text-link">
+                View all <ArrowRight size={15} />
+              </a>
+            }
+          />
+          <RecommendationList onSelect={onSelect} />
+        </div>
+        <div className="panel operations-panel">
+          <SectionTitle title="Live operations" detail="Across 6 departments" />
+          <div className="ops-ring">
+            <div>
+              <strong>78</strong>
+              <span>Risk score</span>
+            </div>
+          </div>
+          <div className="ops-caption">
+            <span className="status-pulse" /> Stable telemetry{" "}
+            <span>99.9% uptime</span>
+          </div>
+        </div>
+      </section>
+      <BottomMetrics />
+    </>
+  );
+}
+function BottomMetrics() {
+  return (
+    <div className="bottom-metrics">
+      {[
+        ["24+", "Data sources connected", Database],
+        ["1,248", "Patients monitored", Users],
+        ["15,632", "Predictions made today", ClipboardList],
+        ["42", "Simulation runs today", Crosshair],
+        ["99.9%", "System uptime", ShieldCheck],
+      ].map(([value, label, Icon]) => (
+        <div key={label as string}>
+          <Icon size={20} />
+          <strong>{value as string}</strong>
+          <span>{label as string}</span>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+function DashboardPage({ onSelect }: { onSelect: (title: string) => void }) {
+  const [selectedDepartment, setSelectedDepartment] =
+    useState("All departments");
+  const [filterOpen, setFilterOpen] = useState(false);
+  const [selectedBottleneck, setSelectedBottleneck] = useState<{
+    name: string;
+    time: string;
+    tone: string;
+    department: string;
+    detail: string;
+  } | null>(null);
+  const [dismissedAlerts, setDismissedAlerts] = useState<Set<string>>(
+    () => new Set(),
+  );
+  const activeAlertCount = alerts.length - dismissedAlerts.size;
+  const [refreshing, setRefreshing] = useState(false);
+  const [lastUpdated, setLastUpdated] = useState("just now");
+  const handleRefresh = () => {
+    if (refreshing) return;
+    setRefreshing(true);
+    window.setTimeout(() => {
+      setRefreshing(false);
+      setLastUpdated("just now");
+    }, 900);
+  };
+  const visibleDepartments =
+    selectedDepartment === "All departments"
+      ? departments
+      : departments.filter(
+          (department) => department.name === selectedDepartment,
+        );
+  return (
+    <>
+      <PageHeader
+        eyebrow="Live operational intelligence"
+        title="Hospital operations overview"
+        subtitle={`Northstar Medical Center / ${selectedDepartment} / Last updated ${lastUpdated}`}
+        action={
+          <div className="header-controls">
+            <div className="department-filter">
+              <button
+                className="control-button"
+                aria-expanded={filterOpen}
+                onClick={() => setFilterOpen(!filterOpen)}
+              >
+                {selectedDepartment} <ChevronDown size={14} />
+              </button>
+              {filterOpen && (
+                <div className="department-menu" role="menu">
+                  <button
+                    className={
+                      selectedDepartment === "All departments" ? "selected" : ""
+                    }
+                    onClick={() => {
+                      setSelectedDepartment("All departments");
+                      setFilterOpen(false);
+                    }}
+                  >
+                    All departments <span>{departments.length}</span>
+                  </button>
+                  {departments.map((department) => (
+                    <button
+                      key={department.slug}
+                      className={
+                        selectedDepartment === department.name ? "selected" : ""
+                      }
+                      onClick={() => {
+                        setSelectedDepartment(department.name);
+                        setFilterOpen(false);
+                      }}
+                    >
+                      {department.name}
+                      <ChevronRight size={14} />
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
+            <button
+              className={cx("icon-button", refreshing && "spinning")}
+              aria-label="Refresh dashboard"
+              disabled={refreshing}
+              onClick={handleRefresh}
+            >
+              <RefreshCw size={17} />
+            </button>
+          </div>
+        }
+      />
+      <div className="risk-strip">
+        <div>
+          <span>Overall hospital risk</span>
+          <strong>HIGH</strong>
+          <small>
+            78 / 100 <i>+6 pts today</i>
+          </small>
+        </div>
+        <div className="risk-bars">
+          {Array.from({ length: 24 }, (_, i) => (
+            <i key={i} className={i > 16 ? "hot" : i > 11 ? "warm" : ""} />
+          ))}
+        </div>
+        <div className="risk-strip-note">
+          <AlertTriangle size={16} /> Peak pressure window{" "}
+          <strong>6 PM - 11 PM</strong>
+        </div>
+      </div>
+      <div className="metrics-grid six">
+        {metrics.slice(0, 4).map((metric) => (
+          <MetricCard metric={metric} key={metric.label} />
+        ))}
+        <div className="metric-card compact-gauge">
+          <div className="mini-gauge">
+            <strong>64%</strong>
+            <span>Staff capacity</span>
+          </div>
+          <small className="up">
+            <TrendingUp size={13} /> +4% <span>vs yesterday</span>
+          </small>
+        </div>
+        <div className="metric-card compact-gauge">
+          <div className="mini-gauge blue-ring">
+            <strong>76%</strong>
+            <span>Equipment</span>
+          </div>
+          <small className="down">
+            <TrendingDown size={13} /> -5% <span>vs yesterday</span>
+          </small>
+        </div>
+      </div>
+      <div className="content-grid dashboard-grid">
+        <div className="panel chart-panel span-2">
+          <SectionTitle title="Live demand" detail="Rolling 24-hour view" />
+          <Legend />
+          <DemandChart />
+        </div>
+        <div className="panel">
+          <SectionTitle
+            title="Critical alerts"
+            detail={
+              activeAlertCount > 0 ? `${activeAlertCount} active` : "All clear"
+            }
+          />
+          <AlertList
+            dismissed={dismissedAlerts}
+            onDismiss={(label) =>
+              setDismissedAlerts((prev) => new Set(prev).add(label))
+            }
+          />
+        </div>
+        <div className="panel span-2">
+          <SectionTitle
+            title="Department status"
+            detail={`${visibleDepartments.length} department${visibleDepartments.length === 1 ? "" : "s"} · Capacity and patient volume`}
+          />
+          <div className="department-grid">
+            {visibleDepartments.map((department) => (
+              <a
+                className="department-card"
+                href={`/departments/${department.slug}`}
+                key={department.name}
+              >
+                <div>
+                  <strong>{department.name}</strong>
+                  <span>{department.volume} patients</span>
+                </div>
+                <div className="capacity-track">
+                  <i
+                    style={{ width: `${department.capacity}%` }}
+                    className={statusClass(department.risk)}
+                  />
+                </div>
+                <div>
+                  <b>{department.capacity}%</b>
+                  <em className={statusClass(department.risk)}>
+                    {department.risk}
+                  </em>
+                  <ChevronRight size={15} />
+                </div>
+              </a>
+            ))}
+          </div>
+        </div>
+        <div className="panel">
+          <SectionTitle title="Next bottlenecks" detail="Forecast window" />
+          <div className="bottlenecks">
+            {[
+              {
+                name: "ER triage",
+                time: "In 1h 20m",
+                tone: "high",
+                department: "Emergency",
+                detail:
+                  "Arrival volume is forecast to exceed available triage coverage.",
+              },
+              {
+                name: "ICU beds",
+                time: "In 4h 05m",
+                tone: "critical",
+                department: "ICU",
+                detail:
+                  "Predicted admissions will leave fewer than two available critical-care beds.",
+              },
+              {
+                name: "OR turnover",
+                time: "Tomorrow 9 AM",
+                tone: "moderate",
+                department: "Surgery",
+                detail:
+                  "Scheduled case volume may extend room turnover beyond the target window.",
+              },
+            ].map((bottleneck) => (
+              <button
+                className="bottleneck-button"
+                key={bottleneck.name}
+                onClick={() => setSelectedBottleneck(bottleneck)}
+              >
+                <span className={cx("timeline-dot", bottleneck.tone)} />
+                <div>
+                  <strong>{bottleneck.name}</strong>
+                  <span>{bottleneck.time}</span>
+                </div>
+                <ChevronRight size={15} />
+              </button>
+            ))}
+          </div>
+        </div>
+        <div className="panel span-2">
+          <SectionTitle title="Decision queue" detail="Human review required" />
+          <RecommendationList onSelect={onSelect} />
+        </div>
+      </div>
+      {selectedBottleneck && (
+        <>
+          <div
+            className="drawer-backdrop"
+            onClick={() => setSelectedBottleneck(null)}
+          />
+          <aside
+            className="slide-over bottleneck-detail"
+            aria-label="Bottleneck details"
+          >
+            <div className="drawer-head">
+              <div>
+                <span className="eyebrow">Forecast bottleneck</span>
+                <h2>{selectedBottleneck.name}</h2>
+              </div>
+              <button
+                className="icon-button"
+                onClick={() => setSelectedBottleneck(null)}
+                aria-label="Close bottleneck details"
+              >
+                <X size={18} />
+              </button>
+            </div>
+            <div className="bottleneck-detail-body">
+              <span className={cx("status-pill", selectedBottleneck.tone)}>
+                Expected {selectedBottleneck.time}
+              </span>
+              <p>{selectedBottleneck.detail}</p>
+              <div className="department-detail-list">
+                <div>
+                  <span>Owner</span>
+                  <strong>{selectedBottleneck.department}</strong>
+                </div>
+                <div>
+                  <span>Forecast confidence</span>
+                  <strong>91%</strong>
+                </div>
+                <div>
+                  <span>Recommended action</span>
+                  <strong>Review capacity</strong>
+                </div>
+                <div>
+                  <span>Last model update</span>
+                  <strong>Just now</strong>
+                </div>
+              </div>
+              <a
+                href={`/departments/${departments.find((item) => item.name === selectedBottleneck.department)?.slug}`}
+                className="primary-button wide"
+              >
+                Open {selectedBottleneck.department} workspace{" "}
+                <ArrowRight size={16} />
+              </a>
+            </div>
+          </aside>
+        </>
+      )}
+    </>
+  );
+}
+
+function DetailModal({
+  eyebrow,
+  title,
+  children,
+  onClose,
+}: {
+  eyebrow?: string;
+  title: string;
+  children: ReactNode;
+  onClose: () => void;
+}) {
+  return (
+    <div className="modal-backdrop" onClick={onClose}>
+      <div className="modal-panel" onClick={(e) => e.stopPropagation()}>
+        <div className="modal-head">
+          <div>
+            {eyebrow && <span className="eyebrow">{eyebrow}</span>}
+            <h2>{title}</h2>
+          </div>
+          <button className="icon-button" onClick={onClose} aria-label="Close">
+            <X size={18} />
+          </button>
+        </div>
+        <div className="modal-body">{children}</div>
+      </div>
+    </div>
+  );
+}
+
+function DepartmentPage({ slug }: { slug: string }) {
+  const department = departments.find((item) => item.slug === slug);
+  const [openCase, setOpenCase] = useState<{
+    label: string;
+    detail: string;
+    tone: string;
+  } | null>(null);
+  if (!department)
+    return <GenericPage path="/departments" onSelect={() => undefined} />;
+  const insight = departmentInsights[slug];
+  const tone = statusClass(department.risk);
+  const wait =
+    department.risk === "Critical"
+      ? "38 min"
+      : department.risk === "High"
+        ? "24 min"
+        : "12 min";
+  return (
+    <>
+      <PageHeader
+        eyebrow="Department command center"
+        title={department.name}
+        subtitle={`Live operations · Led by ${department.lead} · Updated just now`}
+        action={
+          <a href="/dashboard" className="secondary-button">
+            <ChevronLeft size={16} /> All departments
+          </a>
+        }
+      />
+      <section className="department-hero panel">
+        <div>
+          <span className={cx("status-pill", tone)}>
+            {department.risk} operational load
+          </span>
+          <h2>{insight.headline}</h2>
+          <p>
+            A tailored {insight.view} workspace for the {department.name} team,
+            focused on the constraints that determine safe, timely patient flow.
+          </p>
+        </div>
+        <div className="department-hero-stats">
+          <div>
+            <strong>{insight.primaryValue}</strong>
+            <span>{insight.primaryLabel}</span>
+          </div>
+          <div>
+            <strong>{insight.secondaryValue}</strong>
+            <span>{insight.secondaryLabel}</span>
+          </div>
+          <div>
+            <strong>{insight.tertiaryValue}</strong>
+            <span>{insight.tertiaryLabel}</span>
+          </div>
+        </div>
+      </section>
+      <div className="content-grid department-page-grid">
+        {insight.view === "acute" && (
+          <section className="panel department-queue">
+            <SectionTitle
+              title="Acuity & flow queue"
+              detail="Prioritized live work"
+            />
+            <div className="department-priorities">
+              {insight.queue.map(([label, detail, itemTone]) => (
+                <div key={label}>
+                  <AlertTriangle size={16} className={itemTone} />
+                  <span>
+                    <strong>{label}</strong>
+                    <small>{detail}</small>
+                  </span>
+                  <ChevronRight size={15} />
+                </div>
+              ))}
+            </div>
+          </section>
+        )}
+        {insight.view === "procedural" && (
+          <section className="panel department-lanes">
+            <SectionTitle
+              title="Procedure board"
+              detail="Current theatre flow"
+            />
+            <div className="procedure-lanes">
+              {insight.queue.map(([label, detail, itemTone], index) => (
+                <div key={label} className={itemTone}>
+                  <span>ROOM {index + 1}</span>
+                  <strong>{label}</strong>
+                  <small>{detail}</small>
+                </div>
+              ))}
+            </div>
+          </section>
+        )}
+        {insight.view === "diagnostic" && (
+          <section className="panel department-worklist">
+            <SectionTitle
+              title="Priority worklist"
+              detail="Ordered by clinical urgency"
+            />
+            <div className="diagnostic-list">
+              {insight.queue.map(([label, detail, itemTone]) => (
+                <div key={label}>
+                  <span className={itemTone} />
+                  <strong>{label}</strong>
+                  <small>{detail}</small>
+                  <button
+                    className="text-link"
+                    onClick={() => setOpenCase({ label, detail, tone: itemTone })}
+                  >
+                    Open <ChevronRight size={14} />
+                  </button>
+                </div>
+              ))}
+            </div>
+          </section>
+        )}
+        {insight.view === "ward" && (
+          <section className="panel department-rounds">
+            <SectionTitle
+              title="Care coordination board"
+              detail="Today’s flow checkpoints"
+            />
+            <div className="rounds-list">
+              {insight.queue.map(([label, detail, itemTone], index) => (
+                <div key={label}>
+                  <b>0{index + 1}</b>
+                  <span>
+                    <strong>{label}</strong>
+                    <small>{detail}</small>
+                  </span>
+                  <i className={itemTone} />
+                </div>
+              ))}
+            </div>
+          </section>
+        )}
+        <section className="panel chart-panel">
+          <SectionTitle title="Demand trajectory" detail="Next 24 hours" />
+          <Legend />
+          <DemandChart forecast />
+        </section>
+        <aside className="panel department-action-panel">
+          <span className="eyebrow">Operational recommendation</span>
+          <h2>
+            {department.risk === "Critical"
+              ? "Activate surge capacity now"
+              : "Prepare for the next demand window"}
+          </h2>
+          <p>
+            Coordinate with {department.lead} and review available capacity
+            before the next predicted peak.
+          </p>
+          <button
+            className="primary-button wide"
+            onClick={() =>
+              window.alert(
+                `Recommendation sent to ${department.lead} for review.`,
+              )
+            }
+          >
+            Send for review <ArrowRight size={16} />
+          </button>
+        </aside>
+        <section className="panel">
+          <SectionTitle
+            title="Live capacity"
+            detail="Current operational status"
+          />
+          <div className="department-detail-list">
+            <div>
+              <span>Occupied capacity</span>
+              <strong>{department.capacity}%</strong>
+            </div>
+            <div>
+              <span>Patients in care</span>
+              <strong>{department.volume}</strong>
+            </div>
+            <div>
+              <span>Available capacity</span>
+              <strong>{department.beds || "Queue-based"}</strong>
+            </div>
+            <div>
+              <span>Department lead</span>
+              <strong>{department.lead}</strong>
+            </div>
+          </div>
+        </section>
+        <section className="panel">
+          <SectionTitle
+            title="Today's priorities"
+            detail="Human review required"
+          />
+          <div className="department-priorities">
+            <div>
+              <AlertTriangle size={16} className={tone} />
+              <span>Monitor incoming demand and discharge velocity.</span>
+            </div>
+            <div>
+              <Users size={16} />
+              <span>Confirm staffing coverage for the evening shift.</span>
+            </div>
+            <div>
+              <ClipboardList size={16} />
+              <span>Review capacity actions with the care team.</span>
+            </div>
+          </div>
+        </section>
+      </div>
+      {openCase && (
+        <DetailModal
+          eyebrow="Priority worklist"
+          title={openCase.label}
+          onClose={() => setOpenCase(null)}
+        >
+          <p>{openCase.detail}</p>
+          <div className={cx("status-pill", openCase.tone)}>
+            {openCase.tone === "critical"
+              ? "Critical priority"
+              : openCase.tone === "warning"
+                ? "Needs attention"
+                : "Routine"}
+          </div>
+        </DetailModal>
+      )}
+    </>
+  );
+}
+
+function ResourcesPage() {
+  const [approved, setApproved] = useState(false);
+  const [showAddResource, setShowAddResource] = useState(false);
+  const [showReviewDetail, setShowReviewDetail] = useState(false);
+  const [addedResource, setAddedResource] = useState<string | null>(null);
+  const [resourceName, setResourceName] = useState("");
+  const [resourceQty, setResourceQty] = useState("10");
+  const exportUtilization = () => {
+    const header = [
+      "Resource",
+      "Total",
+      "Available",
+      "In use",
+      "Utilization",
+      "Predicted shortage",
+      "Status",
+    ];
+    const csv = [header, ...resources]
+      .map((row) => row.map((cell) => `"${cell}"`).join(","))
+      .join("\n");
+    const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = "resource-utilization.csv";
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+  };
+  return (
+    <>
+      <PageHeader
+        eyebrow="Capacity intelligence"
+        title="Beds & resource management"
+        subtitle="Understand current utilization and act before shortages become constraints."
+        action={
+          <button
+            className="primary-button"
+            onClick={() => setShowAddResource(true)}
+          >
+            <Plus size={16} /> Add resource
+          </button>
+        }
+      />
+      <div className="stat-band">
+        {[
+          ["Total beds", "820", "Across 6 departments"],
+          ["Available", "132", "16% of total"],
+          ["Occupied", "688", "84% utilization"],
+          ["Predicted demand", "+18%", "Next 24 hours"],
+          ["Resource risk", "Moderate", "2 items need review"],
+        ].map(([label, value, detail]) => (
+          <div key={label}>
+            <span>{label}</span>
+            <strong
+              className={label === "Predicted demand" ? "warning-text" : ""}
+            >
+              {value}
+            </strong>
+            <small>{detail}</small>
+          </div>
+        ))}
+      </div>
+      <div className="content-grid resources-grid">
+        <div className="panel donut-panel">
+          <SectionTitle title="Bed distribution" detail="820 total beds" />
+          <div className="donut-wrap">
+            <ResponsiveContainer width="100%" height={220}>
+              <PieChart>
+                <Pie
+                  data={[
+                    { name: "ICU", value: 120 },
+                    { name: "Emergency", value: 88 },
+                    { name: "General ward", value: 420 },
+                    { name: "Surgery recovery", value: 94 },
+                    { name: "Pediatric", value: 58 },
+                    { name: "Isolation", value: 40 },
+                  ]}
+                  innerRadius={66}
+                  outerRadius={88}
+                  paddingAngle={3}
+                  dataKey="value"
+                >
+                  <Cell fill="#ef646b" />
+                  <Cell fill="#f59e0b" />
+                  <Cell fill="#20d6c7" />
+                  <Cell fill="#38bdf8" />
+                  <Cell fill="#8b5cf6" />
+                  <Cell fill="#5e718c" />
+                </Pie>
+                <Tooltip
+                  contentStyle={{
+                    background: "#101e33",
+                    border: "1px solid #29405d",
+                  }}
+                />
+              </PieChart>
+            </ResponsiveContainer>
+            <div className="donut-center">
+              <strong>84%</strong>
+              <span>occupied</span>
+            </div>
+          </div>
+          <div className="distribution-list">
+            {[
+              ["ICU", "120", "#ef646b"],
+              ["Emergency", "88", "#f59e0b"],
+              ["General ward", "420", "#20d6c7"],
+              ["Surgery recovery", "94", "#38bdf8"],
+              ["Pediatric", "58", "#8b5cf6"],
+              ["Isolation", "40", "#5e718c"],
+            ].map(([name, value, color]) => (
+              <span key={name}>
+                <i style={{ background: color }} />
+                {name}
+                <b>{value}</b>
+              </span>
+            ))}
+          </div>
+        </div>
+        <div className="panel optimization-card">
+          <div className="ai-badge">
+            <BrainCircuit size={17} /> AI resource optimization
+          </div>
+          <h2>Rebalance before the evening peak.</h2>
+          <p>
+            Move 3 available monitors from Ward B to ICU to lower equipment
+            shortage risk before predicted arrivals.
+          </p>
+          <div className="impact-stat">
+            <strong>-22%</strong>
+            <span>ICU equipment shortage risk</span>
+          </div>
+          <div className="card-actions">
+            <button
+              className="secondary-button"
+              onClick={() => setShowReviewDetail(true)}
+            >
+              Review
+            </button>
+            <button
+              className={cx("primary-button", approved && "approved")}
+              onClick={() => setApproved(true)}
+            >
+              {approved ? (
+                <>
+                  <CheckCircle2 size={16} /> Sent for review
+                </>
+              ) : (
+                "Approve for review"
+              )}
+            </button>
+            <a
+              href="/simulator"
+              className="icon-button"
+              aria-label="Simulate impact"
+            >
+              <Crosshair size={17} />
+            </a>
+          </div>
+        </div>
+        <div className="panel table-panel span-2">
+          <SectionTitle
+            title="Resource utilization"
+            detail="Live inventory snapshot"
+            action={
+              <button className="control-button" onClick={exportUtilization}>
+                Export <ArrowRight size={14} />
+              </button>
+            }
+          />
+          <div className="table-scroll">
+            <table>
+              <thead>
+                <tr>
+                  {[
+                    "Resource",
+                    "Total",
+                    "Available",
+                    "In use",
+                    "Utilization",
+                    "Predicted shortage",
+                    "Status",
+                  ].map((head) => (
+                    <th key={head}>{head}</th>
+                  ))}
+                </tr>
+              </thead>
+              <tbody>
+                {resources.map((row) => (
+                  <tr key={row[0]}>
+                    {row.map((cell, index) => (
+                      <td
+                        key={cell}
+                        className={
+                          index === 6
+                            ? statusClass(cell)
+                            : index === 5 && cell !== "Low"
+                              ? "warning-text"
+                              : ""
+                        }
+                      >
+                        {index === 6 && <span className="table-status-dot" />}
+                        {cell}
+                      </td>
+                    ))}
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+      {showAddResource && (
+        <DetailModal
+          eyebrow="Capacity intelligence"
+          title="Add resource"
+          onClose={() => setShowAddResource(false)}
+        >
+          <form
+            className="account-form"
+            onSubmit={(event) => {
+              event.preventDefault();
+              setAddedResource(resourceName || "New resource");
+              setShowAddResource(false);
+              setResourceName("");
+              window.setTimeout(() => setAddedResource(null), 3200);
+            }}
+          >
+            <label>
+              Resource name
+              <input
+                value={resourceName}
+                onChange={(e) => setResourceName(e.target.value)}
+                placeholder="e.g. Portable ventilators"
+                required
+              />
+            </label>
+            <label>
+              Quantity
+              <input
+                type="number"
+                min={1}
+                value={resourceQty}
+                onChange={(e) => setResourceQty(e.target.value)}
+                required
+              />
+            </label>
+            <button className="primary-button wide" type="submit">
+              Submit for review
+            </button>
+          </form>
+        </DetailModal>
+      )}
+      {showReviewDetail && (
+        <DetailModal
+          eyebrow="AI resource optimization"
+          title="Rebalance before the evening peak"
+          onClose={() => setShowReviewDetail(false)}
+        >
+          <p>
+            Move 3 available monitors from Ward B to ICU to lower equipment
+            shortage risk before predicted arrivals.
+          </p>
+          <div className="account-info">
+            <strong>Why this recommendation?</strong>
+            <span>ICU predicted arrivals rising 18% over the next 6 hours.</span>
+            <span>Ward B monitors are currently under 40% utilization.</span>
+            <span>Equipment shortage risk drops an estimated 22% if moved.</span>
+          </div>
+        </DetailModal>
+      )}
+      {addedResource && (
+        <motion.div
+          className="toast"
+          initial={{ y: 80, opacity: 1 }}
+          animate={{ y: 0, opacity: 1 }}
+        >
+          <div className="toast-icon">
+            <CheckCircle2 size={18} />
+          </div>
+          <div>
+            <strong>Resource request submitted</strong>
+            <span>{addedResource} added to the review queue.</span>
+          </div>
+          <button
+            className="icon-button"
+            onClick={() => setAddedResource(null)}
+          >
+            <X size={15} />
+          </button>
+        </motion.div>
+      )}
+    </>
+  );
+}
+
+function ForecastPage() {
+  const [range, setRange] = useState("Next 24 hours");
+  const [expandedCard, setExpandedCard] = useState<string | null>(null);
+  return (
+    <>
+      <PageHeader
+        eyebrow="Predictive intelligence"
+        title="AI forecast & risk intelligence"
+        subtitle="Predicting operational pressure before it happens."
+        action={
+          <div className="range-tabs">
+            {[
+              "Next 6 hours",
+              "Next 12 hours",
+              "Next 24 hours",
+              "Next 7 days",
+            ].map((item) => (
+              <button
+                key={item}
+                onClick={() => setRange(item)}
+                className={range === item ? "selected" : ""}
+              >
+                {item}
+              </button>
+            ))}
+          </div>
+        }
+      />
+      <div className="forecast-banner">
+        <div className="forecast-orbit">
+          <Radar size={25} />
+        </div>
+        <div>
+          <strong>Forecast confidence is high</strong>
+          <span>
+            Model refreshed 4 minutes ago using 24 connected data sources.
+          </span>
+        </div>
+        <span className="confidence">
+          <ShieldCheck size={15} /> 91% confidence
+        </span>
+      </div>
+      <div className="content-grid forecast-grid">
+        <div className="panel chart-panel span-2">
+          <SectionTitle title="Patient arrival forecast" detail={range} />
+          <Legend />
+          <DemandChart forecast />
+        </div>
+        <div className="panel risk-card-panel">
+          <SectionTitle title="Risk timeline" detail="Next 12 hours" />
+          <div className="risk-timeline">
+            <div className="timeline-line" />
+            {[
+              ["Now", "Low", "normal"],
+              ["4 PM", "Moderate", "moderate"],
+              ["8 PM", "High", "high"],
+              ["12 AM", "Critical", "critical"],
+            ].map(([time, label, tone]) => (
+              <div key={time} className={cx("risk-point", tone)}>
+                <i />
+                <strong>{time}</strong>
+                <span>{label}</span>
+              </div>
+            ))}
+          </div>
+          <div className="timeline-callout">
+            <Clock3 size={15} />
+            <span>
+              Critical window begins in <b>4h 05m</b>
+            </span>
+          </div>
+        </div>
+        {[
+          [
+            "ICU capacity risk",
+            "Critical",
+            "87%",
+            "Within 6 hours",
+            "critical",
+          ],
+          ["Emergency load risk", "High", "82%", "Within 2 hours", "high"],
+          [
+            "Bed availability",
+            "Moderate",
+            "68%",
+            "Within 10 hours",
+            "moderate",
+          ],
+        ].map(([title, status, probability, time, tone]) => (
+          <div className="panel intelligence-card" key={title}>
+            <div className="intelligence-head">
+              <div>
+                <span>{title}</span>
+                <strong className={tone}>{status}</strong>
+              </div>
+              <div className="probability">
+                <strong>{probability}</strong>
+                <small>probability</small>
+              </div>
+            </div>
+            <div className="intelligence-detail">
+              <span>
+                Expected time <b>{time}</b>
+              </span>
+              <span>
+                Confidence <b>High</b>
+              </span>
+            </div>
+            <button
+              className="why-button"
+              aria-expanded={expandedCard === title}
+              onClick={() =>
+                setExpandedCard(expandedCard === title ? null : (title as string))
+              }
+            >
+              <CircleHelp size={15} /> Why is this predicted?{" "}
+              <ChevronDown
+                size={15}
+                style={{
+                  transform:
+                    expandedCard === title ? "rotate(180deg)" : undefined,
+                  transition: "transform 0.2s ease",
+                }}
+              />
+            </button>
+            {expandedCard === title && (
+              <div className="factor-list">
+                <span>
+                  <TrendingUp size={13} /> Emergency arrivals increasing
+                </span>
+                <span>
+                  <TrendingDown size={13} /> Available nursing staff declining
+                </span>
+              </div>
+            )}
+          </div>
+        ))}
+      </div>
+    </>
+  );
+}
+
+function InjuryPage() {
+  const [region, setRegion] = useState("Chest");
+  const [view, setView] = useState<"Front" | "Back">("Front");
+  const [fileName, setFileName] = useState<string | null>(null);
+  const [detailOpen, setDetailOpen] = useState(false);
+  const [reviewSent, setReviewSent] = useState(false);
+  const [dragging, setDragging] = useState(false);
+  const fileInput = useRef<HTMLInputElement>(null);
+  const concerns = [
+    {
+      name: "Chest region",
+      region: "Chest",
+      confidence: "87%",
+      label: "High",
+      tone: "critical",
+      detail:
+        "Potential abnormality highlighted for clinician review. This result is assistive only and not a diagnosis.",
+    },
+    {
+      name: "Left knee",
+      region: "Left Leg",
+      confidence: "72%",
+      label: "Moderate",
+      tone: "warning",
+      detail:
+        "Potential finding requires correlation with the original imaging study and clinical context.",
+    },
+    {
+      name: "Right shoulder",
+      region: "Right Arm",
+      confidence: "64%",
+      label: "Moderate",
+      tone: "warning",
+      detail:
+        "Potential finding requires correlation with the original imaging study and clinical context.",
+    },
+  ];
+  const selectedConcern =
+    concerns.find((concern) => concern.region === region) || concerns[0];
+  const acceptFile = (file?: File) => {
+    if (!file) return;
+    if (file.size > 50 * 1024 * 1024) {
+      alert("Please choose a file smaller than 50 MB.");
+      return;
+    }
+    setFileName(file.name);
+    setReviewSent(false);
+  };
+  return (
+    <>
+      <PageHeader
+        eyebrow="Secure AI assistance"
+        title="Injury detection support"
+        subtitle="Review potential areas of concern with authorized professionals."
+        action={
+          <span className="secure-label">
+            <ShieldCheck size={16} /> Encrypted workspace
+          </span>
+        }
+      />
+      <div className="disclaimer">
+        <ShieldCheck size={16} />
+        <span>
+          <strong>AI-assisted detection support.</strong> This system provides
+          decision-support insights and requires review by authorized medical
+          professionals. It is not a definitive diagnosis.
+        </span>
+      </div>
+      <div className="injury-layout">
+        <div className="panel body-panel">
+          <div className="body-toolbar">
+            <div className="range-tabs">
+              {(["Front", "Back"] as const).map((side) => (
+                <button
+                  key={side}
+                  className={view === side ? "selected" : ""}
+                  onClick={() => setView(side)}
+                >
+                  {side}
+                </button>
+              ))}
+            </div>
+            <span>
+              {fileName ? `Scan / ${fileName}` : "Scan ID / MN-28401"}
+            </span>
+          </div>
+          <div className={cx("body-map", view === "Back" && "body-back")}>
+            <div className="body-silhouette">
+              <div className="body-head" />
+              <div className="body-torso" />
+              <div className="body-arm left" />
+              <div className="body-arm right" />
+              <div className="body-leg left" />
+              <div className="body-leg right" />
+              {[
+                "Head",
+                "Neck",
+                "Chest",
+                "Abdomen",
+                "Left Arm",
+                "Right Arm",
+                "Left Leg",
+                "Right Leg",
+              ].map((item, i) => (
+                <button
+                  key={item}
+                  className={cx(
+                    "region-dot",
+                    region === item && "selected",
+                    `region-${i}`,
+                  )}
+                  onClick={() => setRegion(item)}
+                  aria-label={`Select ${item}`}
+                />
+              ))}
+            </div>
+            <div className="body-map-label">
+              <span>{view} interactive region map</span>
+              <strong>{region} selected</strong>
+            </div>
+          </div>
+          <div
+            className={cx("upload-box", dragging && "dragging")}
+            onDragOver={(event) => {
+              event.preventDefault();
+              setDragging(true);
+            }}
+            onDragLeave={() => setDragging(false)}
+            onDrop={(event) => {
+              event.preventDefault();
+              setDragging(false);
+              acceptFile(event.dataTransfer.files[0]);
+            }}
+          >
+            <FileSearch size={21} />
+            <div>
+              <strong>{fileName || "Drop a scan or image here"}</strong>
+              <span>
+                {fileName
+                  ? "Ready for authorized review"
+                  : "PNG, JPG, DICOM up to 50 MB"}
+              </span>
+            </div>
+            <input
+              ref={fileInput}
+              type="file"
+              accept="image/png,image/jpeg,.dcm"
+              hidden
+              onChange={(event) => acceptFile(event.target.files?.[0])}
+            />
+            <button
+              className="secondary-button"
+              onClick={() => fileInput.current?.click()}
+            >
+              {fileName ? "Replace file" : "Browse files"}
+            </button>
+          </div>
+        </div>
+        <div className="panel analysis-panel">
+          <div className="ai-badge">
+            <BrainCircuit size={17} /> AI analysis / review required
+          </div>
+          <SectionTitle
+            title="Potential areas of concern"
+            detail="Not a diagnosis"
+          />
+          <div className="concern-list">
+            {concerns.map((concern) => (
+              <button
+                key={concern.name}
+                className={cx(
+                  "concern-row",
+                  region === concern.region && "selected",
+                )}
+                onClick={() => {
+                  setRegion(concern.region);
+                  setDetailOpen(true);
+                }}
+              >
+                <div className={cx("concern-dot", concern.tone)} />
+                <div>
+                  <strong>{concern.name}</strong>
+                  <span>Confidence {concern.confidence}</span>
+                </div>
+                <em className={concern.tone}>{concern.label}</em>
+                <ChevronRight size={15} />
+              </button>
+            ))}
+          </div>
+          <div className="analysis-timeline">
+            {[
+              "Upload received",
+              "Image processing",
+              "Body region analysis",
+              "Potential finding highlighted",
+              reviewSent ? "Sent for professional review" : "Review required",
+            ].map((item, i) => (
+              <div
+                key={item}
+                className={i < 4 || reviewSent ? "complete" : "current"}
+              >
+                <span>
+                  {i < 4 || reviewSent ? (
+                    <CheckCircle2 size={14} />
+                  ) : (
+                    <Clock3 size={14} />
+                  )}
+                </span>
+                <strong>{item}</strong>
+                {i === 3 && <small>Completed just now</small>}
+              </div>
+            ))}
+          </div>
+          <div className="card-actions">
+            <button
+              className="secondary-button"
+              onClick={() => setDetailOpen(true)}
+            >
+              View details
+            </button>
+            <button
+              className={cx("primary-button", reviewSent && "approved")}
+              onClick={() => setReviewSent(true)}
+            >
+              {reviewSent ? (
+                <>
+                  <CheckCircle2 size={16} /> Sent for review
+                </>
+              ) : (
+                "Send for professional review"
+              )}
+            </button>
+          </div>
+        </div>
+      </div>
+      {detailOpen && (
+        <>
+          <div
+            className="drawer-backdrop"
+            onClick={() => setDetailOpen(false)}
+          />
+          <aside className="slide-over injury-detail">
+            <div className="drawer-head">
+              <div>
+                <span className="eyebrow">Selected area</span>
+                <h2>{selectedConcern.name}</h2>
+              </div>
+              <button
+                className="icon-button"
+                onClick={() => setDetailOpen(false)}
+                aria-label="Close details"
+              >
+                <X size={18} />
+              </button>
+            </div>
+            <div className="injury-detail-body">
+              <span className={cx("status-pill", selectedConcern.tone)}>
+                Confidence {selectedConcern.confidence}
+              </span>
+              <p>{selectedConcern.detail}</p>
+              <div className="department-detail-list">
+                <div>
+                  <span>Selected view</span>
+                  <strong>{view}</strong>
+                </div>
+                <div>
+                  <span>Region</span>
+                  <strong>{region}</strong>
+                </div>
+                <div>
+                  <span>Input</span>
+                  <strong>{fileName || "Demo scan"}</strong>
+                </div>
+                <div>
+                  <span>Required next step</span>
+                  <strong>Clinical review</strong>
+                </div>
+              </div>
+              <button
+                className="primary-button wide"
+                onClick={() => {
+                  setReviewSent(true);
+                  setDetailOpen(false);
+                }}
+              >
+                Send for professional review <ArrowRight size={16} />
+              </button>
+            </div>
+          </aside>
+        </>
+      )}
+    </>
+  );
+}
+
+function RecommendationsPage({
+  onSelect,
+}: {
+  onSelect: (title: string) => void;
+}) {
+  const [filter, setFilter] = useState("All");
+  const [showDecisionLog, setShowDecisionLog] = useState(false);
+  const [logSelectedIndex, setLogSelectedIndex] = useState<number | null>(
+    null,
+  );
+  const [logStatuses, setLogStatuses] = useState<Record<number, string>>({});
+  const filteredRecommendations = recommendations
+    .map((item, i) => ({ ...item, i }))
+    .filter(({ i }) =>
+      filter === "All"
+        ? true
+        : filter === "Under review"
+          ? i >= 2
+          : i < 2,
+    );
+  return (
+    <>
+      <PageHeader
+        eyebrow="Human-led decision support"
+        title="AI recommendations"
+        subtitle="Prioritized actions based on current and predicted operational conditions."
+        action={
+          <button
+            className="primary-button"
+            onClick={() => setShowDecisionLog(true)}
+          >
+            <ClipboardList size={16} /> Decision log
+          </button>
+        }
+      />
+      <div className="decision-summary">
+        <div>
+          <span>Open recommendations</span>
+          <strong>12</strong>
+        </div>
+        <div>
+          <span>Critical review</span>
+          <strong className="critical">3</strong>
+        </div>
+        <div>
+          <span>Under review</span>
+          <strong className="warning-text">5</strong>
+        </div>
+        <div>
+          <span>Implemented today</span>
+          <strong className="teal-text">8</strong>
+        </div>
+        <div className="decision-tabs">
+          {["All", "Critical", "High impact", "Under review"].map((item) => (
+            <button
+              key={item}
+              onClick={() => setFilter(item)}
+              className={filter === item ? "selected" : ""}
+            >
+              {item}
+            </button>
+          ))}
+        </div>
+      </div>
+      <div className="recommendations-layout">
+        <div className="recommendation-cards">
+          {filteredRecommendations.length === 0 && (
+            <div className="empty-page">
+              <p>No recommendations match this filter right now.</p>
+            </div>
+          )}
+          {filteredRecommendations.map((item) => {
+            const i = item.i;
+            return (
+            <motion.button
+              whileHover={{ x: 3 }}
+              className="rec-card"
+              key={item.title}
+              onClick={() => onSelect(item.title)}
+            >
+              <div className="rec-number">0{i + 1}</div>
+              <div className="rec-main">
+                <div className="rec-card-head">
+                  <span className={item.tone}>
+                    {i < 2 ? "Critical priority" : "Medium impact"}
+                  </span>
+                  <span>Updated 4m ago</span>
+                </div>
+                <h2>{item.title}</h2>
+                <p>
+                  {i === 0
+                    ? "Preserve high-acuity capacity ahead of the evening demand window."
+                    : i === 1
+                      ? "Reduce staff pressure where arrival velocity is increasing."
+                      : "Create capacity by adjusting non-urgent scheduling."}
+                </p>
+                <div className="rec-meta">
+                  <span>
+                    <strong>Expected impact</strong>
+                    {i < 2
+                      ? "Reduce overload probability by 18%"
+                      : "Improve flow by 12%"}
+                  </span>
+                  <span>
+                    <strong>Affected areas</strong>
+                    {i === 0
+                      ? "ICU / Emergency"
+                      : i === 1
+                        ? "Emergency / ICU"
+                        : "Surgery / Ward"}
+                  </span>
+                  <span>
+                    <strong>Confidence</strong>
+                    {91 - i * 5}%
+                  </span>
+                </div>
+              </div>
+              <ChevronRight size={17} />
+            </motion.button>
+            );
+          })}
+        </div>
+        <div className="panel workflow-panel">
+          <SectionTitle title="Decision workflow" detail="This week" />
+          <div className="workflow">
+            <div className="workflow-counts">
+              <strong>32</strong>
+              <span>actions tracked</span>
+            </div>
+            {["Recommended", "Under review", "Approved", "Implemented"].map(
+              (item, i) => (
+                <div className="workflow-step" key={item}>
+                  <span className={i < 2 ? "active" : ""}>
+                    {i < 2 ? <CheckCircle2 size={14} /> : i + 1}
+                  </span>
+                  <div>
+                    <strong>{item}</strong>
+                    <span>{[12, 5, 7, 8][i]} actions</span>
+                  </div>
+                </div>
+              ),
+            )}
+          </div>
+          <div className="workflow-note">
+            <ShieldCheck size={16} />
+            <span>
+              Every recommendation remains human-approved and auditable.
+            </span>
+          </div>
+        </div>
+      </div>
+      {showDecisionLog && (
+        <DetailModal
+          eyebrow="Human review history"
+          title="Decision log"
+          onClose={() => {
+            setShowDecisionLog(false);
+            setLogSelectedIndex(null);
+          }}
+        >
+          {logSelectedIndex === null ? (
+            <div className="account-info">
+              {recommendations.map((item, index) => (
+                <button
+                  key={item.title}
+                  className="drawer-row"
+                  onClick={() => setLogSelectedIndex(index)}
+                >
+                  <span>
+                    <strong>
+                      0{index + 1} / {item.title}
+                    </strong>
+                    <small>
+                      {logStatuses[index] || "Pending human review"}
+                    </small>
+                  </span>
+                  <ChevronRight size={16} />
+                </button>
+              ))}
+            </div>
+          ) : (
+            <div className="decision-log-detail">
+              <button
+                className="back-link"
+                onClick={() => setLogSelectedIndex(null)}
+              >
+                <ChevronLeft size={15} /> Back to decisions
+              </button>
+              <span className="eyebrow">Decision 0{logSelectedIndex + 1}</span>
+              <h3>{recommendations[logSelectedIndex].title}</h3>
+              <p>
+                Review the recommended action and record the next workflow
+                state.
+              </p>
+              <div className="decision-log-actions">
+                <button
+                  className="primary-button"
+                  onClick={() => {
+                    setLogStatuses((current) => ({
+                      ...current,
+                      [logSelectedIndex]: "Approved by Admin User",
+                    }));
+                    setLogSelectedIndex(null);
+                  }}
+                >
+                  <CheckCircle2 size={16} /> Approve
+                </button>
+                <button
+                  className="secondary-button"
+                  onClick={() => {
+                    setLogStatuses((current) => ({
+                      ...current,
+                      [logSelectedIndex]: "Deferred for review",
+                    }));
+                    setLogSelectedIndex(null);
+                  }}
+                >
+                  Defer
+                </button>
+              </div>
+            </div>
+          )}
+        </DetailModal>
+      )}
+    </>
+  );
+}
+
+function GenericPage({
+  path,
+  onSelect,
+}: {
+  path: string;
+  onSelect: (title: string) => void;
+}) {
+  const config: Record<string, [string, string, string]> = {
+    "/": ["Home", "", ""],
+    "/dashboard": [
+      "Dashboard",
+      "Hospital operations overview",
+      "Live operational intelligence",
+    ],
+    "/resources": [
+      "Resources",
+      "Beds & resource management",
+      "Understand current utilization and act before shortages become constraints.",
+    ],
+    "/forecast": [
+      "Forecast",
+      "AI forecast & risk intelligence",
+      "Predicting operational pressure before it happens.",
+    ],
+    "/simulator": [
+      "Simulator",
+      "Emergency surge simulator",
+      "Explore hypothetical pressure before it reaches the floor.",
+    ],
+    "/digital-twin": [
+      "Digital Twin",
+      "Hospital digital twin",
+      "A live spatial model of flow, pressure, and capacity.",
+    ],
+    "/injury-detection": [
+      "Injury Detection",
+      "Injury detection support",
+      "Review potential areas of concern with authorized professionals.",
+    ],
+    "/recommendations": [
+      "Recommendations",
+      "AI recommendations",
+      "Prioritized actions based on current and predicted operational conditions.",
+    ],
+  };
+  return (
+    <div className="empty-page">
+      <span className="eyebrow">MedSync intelligence</span>
+      <h1>{config[path]?.[1] || "Command center"}</h1>
+      <p>
+        {config[path]?.[2] ||
+          "Operational decision support for hospital leaders."}
+      </p>
+      <a href="/dashboard" className="primary-button">
+        Open dashboard <ArrowRight size={16} />
+      </a>
+    </div>
+  );
+}
+
+export default function App() {
+  const [collapsed, setCollapsed] = useState(false);
+  const [mobileOpen, setMobileOpen] = useState(false);
+  const [drawer, setDrawer] = useState<"settings" | "profile" | null>(null);
+  const [selectedRec, setSelectedRec] = useState<string | null>(null);
+  const [path, setPath] = useState("/");
+  const [user, setUser] = useState<AppUser | null | undefined>(undefined);
+  useEffect(() => {
+    setPath(window.location.pathname);
+    const onPop = () => setPath(window.location.pathname);
+    window.addEventListener("popstate", onPop);
+    if (!window.localStorage.getItem("access_token")) {
+      setUser(null);
+    } else {
+      getCurrentUser()
+        .then((account) => setUser(account as AppUser))
+        .catch(() => {
+          logout();
+          setUser(null);
+        });
+    }
+    return () => window.removeEventListener("popstate", onPop);
+  }, []);
+  const page = useMemo(() => {
+    if (!user) return null;
+    if (path === "/") return <HomePage onSelect={setSelectedRec} />;
+    if (path === "/dashboard")
+      return <DashboardPage onSelect={setSelectedRec} />;
+    if (path === "/admin") return <AdminUsers currentUser={user} />;
+    if (path.startsWith("/departments/"))
+      return <DepartmentPage slug={path.split("/")[2]} />;
+    if (path === "/resources") return <ResourcesPage />;
+    if (path === "/forecast") return <ForecastPage />;
+    if (path === "/simulator") return <SurgeSimulator />;
+    if (path === "/digital-twin") return <DigitalTwinGraph />;
+    if (path === "/injury-detection") return <InjuryPage />;
+    if (path === "/recommendations")
+      return <RecommendationsPage onSelect={setSelectedRec} />;
+    return <GenericPage path={path} onSelect={setSelectedRec} />;
+  }, [path, user]);
+  useEffect(() => {
+    const click = (event: MouseEvent) => {
+      const target = (event.target as HTMLElement).closest("a");
+      if (
+        target?.origin === window.location.origin &&
+        target.pathname.startsWith("/")
+      ) {
+        event.preventDefault();
+        window.history.pushState({}, "", target.pathname);
+        setPath(target.pathname);
+        setMobileOpen(false);
+        window.scrollTo({ top: 0, behavior: "smooth" });
+      }
+    };
+    document.addEventListener("click", click);
+    return () => document.removeEventListener("click", click);
+  }, []);
+  if (user === undefined)
+    return <div className="auth-loading">Loading secure workspace…</div>;
+  if (!user) {
+    return (
+      <div className="auth-landing-shell">
+        <div className="auth-landing-background">
+          <HomePage onSelect={setSelectedRec} />
+        </div>
+        <div className="auth-overlay">
+          <AuthExperience
+            mode={path === "/register" ? "register" : "login"}
+            onAuthenticated={(account) => {
+              setUser(account);
+              window.history.replaceState({}, "", "/dashboard");
+              setPath("/dashboard");
+            }}
+          />
+        </div>
+      </div>
+    );
+  }
+  return (
+    <div className="app-shell">
+      <Sidebar
+        collapsed={collapsed}
+        setCollapsed={setCollapsed}
+        mobileOpen={mobileOpen}
+        closeMobile={() => setMobileOpen(false)}
+        onSettings={() => setDrawer("settings")}
+        onProfile={() => setDrawer("profile")}
+        currentPath={path}
+      />
+      <main className={cx("main-content", collapsed && "sidebar-collapsed")}>
+        <Topbar
+          onMenu={() => setMobileOpen(true)}
+          onSettings={() => setDrawer("settings")}
+          onProfile={() => setDrawer("profile")}
+        />
+        <div className="page-content">{page}</div>
+      </main>
+      <SlideOver
+        kind={drawer === "profile" ? "profile" : null}
+        close={() => setDrawer(null)}
+      />
+      {drawer === "settings" && (
+        <>
+          <div className="settings-overlay" onClick={() => setDrawer(null)} />
+          <WorkspaceSettings close={() => setDrawer(null)} />
+        </>
+      )}
+      {selectedRec && (
+        <motion.div
+          className="toast"
+          initial={{ y: 80, opacity: 1 }}
+          animate={{ y: 0, opacity: 1 }}
+        >
+          <div className="toast-icon">
+            <BrainCircuit size={18} />
+          </div>
+          <div>
+            <strong>Recommendation selected</strong>
+            <span>{selectedRec}</span>
+          </div>
+          <button className="icon-button" onClick={() => setSelectedRec(null)}>
+            <X size={15} />
+          </button>
+        </motion.div>
+      )}
+    </div>
+  );
+}
