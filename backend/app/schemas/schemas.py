@@ -32,6 +32,10 @@ class UserOut(BaseModel):
         return _normalize_uuid(value)
 
 
+class UserProfileUpdate(BaseModel):
+    full_name: str = Field(min_length=2, max_length=160)
+
+
 class AdminUserCreate(UserCreate):
     """A user created by an authenticated administrator."""
     role: str = "operations_manager"

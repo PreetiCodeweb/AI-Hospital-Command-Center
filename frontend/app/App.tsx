@@ -75,7 +75,12 @@ import { DigitalTwinGraph } from "../components/DigitalTwinGraph";
 import { WorkspaceSettings } from "../components/WorkspaceSettings";
 import { SurgeSimulator } from "../components/SurgeSimulator";
 import { AdminUsers, AuthExperience } from "../components/AuthExperience";
-import { getCurrentUser, logout, type AppUser } from "../authService";
+import {
+  getCurrentUser,
+  logout,
+  updateCurrentUserProfile,
+  type AppUser,
+} from "../authService";
 
 const navItems = [
   ["/", "Home", Hospital],
@@ -184,6 +189,73 @@ const metrics = [
     trend: "No change",
     icon: Users,
     tone: "info",
+  },
+];
+
+const icuBeds = [
+  {
+    id: "ICU-101",
+    status: "available",
+    type: "Critical Care",
+    ventilator: true,
+    monitor: true,
+    lastCleaned: "5 mins ago",
+  },
+  {
+    id: "ICU-102",
+    status: "available",
+    type: "Critical Care",
+    ventilator: true,
+    monitor: true,
+    lastCleaned: "12 mins ago",
+  },
+  {
+    id: "ICU-103",
+    status: "occupied",
+    type: "Critical Care",
+    ventilator: true,
+    monitor: true,
+    lastCleaned: "2 hours ago",
+  },
+  {
+    id: "ICU-104",
+    status: "available",
+    type: "High Dependency",
+    ventilator: false,
+    monitor: true,
+    lastCleaned: "8 mins ago",
+  },
+  {
+    id: "ICU-105",
+    status: "available",
+    type: "Critical Care",
+    ventilator: true,
+    monitor: true,
+    lastCleaned: "3 mins ago",
+  },
+  {
+    id: "ICU-106",
+    status: "maintenance",
+    type: "Critical Care",
+    ventilator: true,
+    monitor: true,
+    lastCleaned: "1 hour ago",
+  },
+  {
+    id: "ICU-107",
+    status: "available",
+    type: "High Dependency",
+    ventilator: false,
+    monitor: true,
+    lastCleaned: "15 mins ago",
+  },
+  {
+    id: "ICU-108",
+    status: "occupied",
+    type: "Critical Care",
+    ventilator: true,
+    monitor: true,
+    lastCleaned: "3 hours ago",
   },
 ];
 const departments = [
@@ -548,6 +620,7 @@ function Sidebar({
   onSettings,
   onProfile,
   currentPath,
+  currentUser,
 }: {
   collapsed: boolean;
   setCollapsed: (v: boolean) => void;
@@ -556,6 +629,7 @@ function Sidebar({
   onSettings: () => void;
   onProfile: () => void;
   currentPath: string;
+  currentUser: AppUser | null;
 }) {
   return (
     <aside
@@ -606,8 +680,8 @@ function Sidebar({
             <UserRound size={17} />
           </div>
           <div>
-            <strong>Admin User</strong>
-            <span>Hospital Administrator</span>
+            <strong>{currentUser?.full_name || "Admin User"}</strong>
+            <span>{currentUser?.role?.replace("_", " ") || "Hospital Administrator"}</span>
           </div>
           <ChevronDown size={15} />
         </button>
@@ -624,10 +698,12 @@ function Topbar({
   onMenu,
   onSettings,
   onProfile,
+  currentUser,
 }: {
   onMenu: () => void;
   onSettings: () => void;
   onProfile: () => void;
+  currentUser: AppUser | null;
 }) {
   return (
     <header className="topbar">
@@ -663,7 +739,7 @@ function Topbar({
           <div className="avatar">
             <UserRound size={15} />
           </div>
-          <span>Admin</span>
+          <span>{currentUser?.full_name?.split(" ")[0] || "Admin"}</span>
           <ChevronDown size={14} />
         </button>
       </div>
@@ -675,13 +751,23 @@ function Topbar({
 function SlideOver({
   kind,
   close,
+  currentUser,
+  onProfileChange,
 }: {
   kind: "settings" | "profile" | null;
   close: () => void;
+  currentUser: AppUser | null;
+  onProfileChange: (user: AppUser) => void;
 }) {
   const [section, setSection] = useState("Profile information");
   const [saved, setSaved] = useState(false);
   const [alerts, setAlerts] = useState(true);
+  const [displayName, setDisplayName] = useState(currentUser?.full_name || "");
+  const [saving, setSaving] = useState(false);
+  const [formError, setFormError] = useState("");
+  useEffect(() => {
+    setDisplayName(currentUser?.full_name || "");
+  }, [currentUser, kind]);
   const rows = [
     "Profile information",
     "Organization",
@@ -694,21 +780,50 @@ function SlideOver({
       <div className="account-form">
         <label>
           Display name
-          <input defaultValue="Admin User" />
+          <input
+            value={displayName}
+            onChange={(event) => setDisplayName(event.target.value)}
+            minLength={2}
+            maxLength={160}
+          />
         </label>
         <label>
           Email
-          <input defaultValue="admin@northstarmedical.example" type="email" />
+          <input value={currentUser?.email || ""} type="email" disabled />
         </label>
         <label>
           Role
-          <input defaultValue="Hospital Administrator" disabled />
+          <input value={currentUser?.role?.replace("_", " ") || ""} disabled />
         </label>
-        <button className="primary-button wide" onClick={() => setSaved(true)}>
+        {formError && <p className="auth-error">{formError}</p>}
+        <button
+          className="primary-button wide"
+          disabled={saving || !displayName.trim()}
+          onClick={async () => {
+            setFormError("");
+            const nextName = displayName.trim();
+            if (!nextName || nextName.length < 2) {
+              setFormError("Display name must be at least 2 characters.");
+              return;
+            }
+            setSaving(true);
+            try {
+              const updated = await updateCurrentUserProfile({ full_name: nextName });
+              onProfileChange(updated);
+              setSaved(true);
+            } catch (error) {
+              setFormError(error instanceof Error ? error.message : "Unable to save profile.");
+            } finally {
+              setSaving(false);
+            }
+          }}
+        >
           {saved ? (
             <>
               <CheckCircle2 size={16} /> Changes saved
             </>
+          ) : saving ? (
+            "Saving…"
           ) : (
             "Save changes"
           )}
@@ -800,8 +915,8 @@ function SlideOver({
               <UserRound size={27} />
             </div>
             <div>
-              <h3>Admin User</h3>
-              <p>Hospital Administrator</p>
+              <h3>{currentUser?.full_name || "Admin User"}</h3>
+              <p>{currentUser?.role?.replace("_", " ") || "Hospital Administrator"}</p>
             </div>
           </div>
           <div className="account-nav">
@@ -1107,7 +1222,10 @@ function HomePage({ onSelect }: { onSelect: (title: string) => void }) {
         <div className="hero-visual">
           <div className="hospital-art">
             <div className="art-grid" />
-            <Building2 size={100} strokeWidth={0.7} />
+            <div className="hospital-image-panel">
+              <div className="hospital-photo" />
+              <div className="hospital-glow" />
+            </div>
             <div className="hospital-label">
               <span>MN / 04</span>
               <strong>Northstar Medical Center</strong>
@@ -2218,6 +2336,208 @@ function ForecastPage() {
   );
 }
 
+function ICUBedsPanel({
+  onClose,
+  onOrderBed,
+}: {
+  onClose: () => void;
+  onOrderBed: (bedId: string) => void;
+}) {
+  const [selectedBed, setSelectedBed] = useState<string | null>(null);
+  const [orderConfirm, setOrderConfirm] = useState(false);
+  const availableBeds = icuBeds.filter((bed) => bed.status === "available");
+
+  const handleOrder = () => {
+    if (selectedBed) {
+      onOrderBed(selectedBed);
+      setOrderConfirm(true);
+      setTimeout(() => {
+        setOrderConfirm(false);
+        setSelectedBed(null);
+      }, 2000);
+    }
+  };
+
+  return (
+    <motion.div
+      className="modal-backdrop"
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      exit={{ opacity: 0 }}
+    >
+      <motion.div
+        className="modal-panel"
+        initial={{ scale: 0.95 }}
+        animate={{ scale: 1 }}
+        exit={{ scale: 0.95 }}
+      >
+        <div className="modal-head">
+          <div>
+            <h2>ICU Beds Availability</h2>
+            <span style={{ color: "var(--muted)", fontSize: "12px" }}>
+              {availableBeds.length} beds available
+            </span>
+          </div>
+          <button
+            className="icon-button"
+            onClick={onClose}
+            aria-label="Close modal"
+          >
+            <X size={18} />
+          </button>
+        </div>
+
+        <div
+          style={{
+            display: "grid",
+            gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))",
+            gap: "12px",
+            marginBottom: "18px",
+          }}
+        >
+          {icuBeds.map((bed) => (
+            <div
+              key={bed.id}
+              className={cx(
+                "icu-bed-card",
+                bed.status === "available" && "available",
+                bed.status === "occupied" && "occupied",
+                bed.status === "maintenance" && "maintenance",
+                selectedBed === bed.id && "selected",
+              )}
+              onClick={() =>
+                bed.status === "available" && setSelectedBed(bed.id)
+              }
+              style={{
+                padding: "12px",
+                borderRadius: "8px",
+                border: `1px solid ${
+                  bed.status === "available"
+                    ? "rgba(32, 214, 199, 0.3)"
+                    : "rgba(148, 163, 184, 0.1)"
+                }`,
+                background:
+                  bed.status === "available"
+                    ? "rgba(32, 214, 199, 0.05)"
+                    : bed.status === "occupied"
+                      ? "rgba(239, 68, 68, 0.05)"
+                      : "rgba(148, 163, 184, 0.05)",
+                cursor:
+                  bed.status === "available" ? "pointer" : "not-allowed",
+                opacity: bed.status === "maintenance" ? 0.5 : 1,
+                transition: "all 0.2s ease",
+                borderWidth:
+                  selectedBed === bed.id && bed.status === "available"
+                    ? "2px"
+                    : "1px",
+              }}
+            >
+              <div
+                style={{
+                  display: "flex",
+                  justifyContent: "space-between",
+                  alignItems: "center",
+                  marginBottom: "8px",
+                }}
+              >
+                <strong style={{ fontSize: "14px" }}>{bed.id}</strong>
+                <span
+                  style={{
+                    fontSize: "10px",
+                    padding: "2px 6px",
+                    borderRadius: "4px",
+                    background:
+                      bed.status === "available"
+                        ? "rgba(34, 197, 94, 0.2)"
+                        : bed.status === "occupied"
+                          ? "rgba(239, 68, 68, 0.2)"
+                          : "rgba(148, 163, 184, 0.2)",
+                    color:
+                      bed.status === "available"
+                        ? "#22c55e"
+                        : bed.status === "occupied"
+                          ? "#ef4444"
+                          : "#8da0bb",
+                    textTransform: "capitalize",
+                  }}
+                >
+                  {bed.status}
+                </span>
+              </div>
+              <div
+                style={{
+                  fontSize: "11px",
+                  color: "var(--muted)",
+                  marginBottom: "6px",
+                }}
+              >
+                <span style={{ display: "block" }}>{bed.type}</span>
+                <span style={{ display: "block" }}>
+                  {bed.ventilator && "✓ Ventilator"}{" "}
+                  {bed.monitor && "✓ Monitor"}
+                </span>
+              </div>
+              <span
+                style={{
+                  fontSize: "9px",
+                  color: "var(--dim)",
+                  display: "block",
+                }}
+              >
+                Cleaned: {bed.lastCleaned}
+              </span>
+            </div>
+          ))}
+        </div>
+
+        {orderConfirm && (
+          <div
+            style={{
+              padding: "12px",
+              marginBottom: "12px",
+              borderRadius: "8px",
+              background: "rgba(34, 197, 94, 0.1)",
+              border: "1px solid rgba(34, 197, 94, 0.3)",
+              color: "#22c55e",
+              fontSize: "12px",
+            }}
+          >
+            ✓ Bed {selectedBed} reserved successfully
+          </div>
+        )}
+
+        <div
+          style={{
+            display: "flex",
+            gap: "10px",
+            justifyContent: "flex-end",
+          }}
+        >
+          <button
+            className="secondary-button"
+            onClick={onClose}
+            style={{ padding: "8px 14px", fontSize: "12px" }}
+          >
+            Close
+          </button>
+          <button
+            className="primary-button"
+            onClick={handleOrder}
+            disabled={!selectedBed || orderConfirm}
+            style={{
+              padding: "8px 14px",
+              fontSize: "12px",
+              opacity: !selectedBed ? 0.5 : 1,
+            }}
+          >
+            {orderConfirm ? "✓ Ordered" : "Order Bed"}
+          </button>
+        </div>
+      </motion.div>
+    </motion.div>
+  );
+}
+
 function InjuryPage() {
   const [region, setRegion] = useState("Chest");
   const [view, setView] = useState<"Front" | "Back">("Front");
@@ -2225,6 +2545,8 @@ function InjuryPage() {
   const [detailOpen, setDetailOpen] = useState(false);
   const [reviewSent, setReviewSent] = useState(false);
   const [dragging, setDragging] = useState(false);
+  const [showICUBeds, setShowICUBeds] = useState(false);
+  const [orderedBeds, setOrderedBeds] = useState<string[]>([]);
   const fileInput = useRef<HTMLInputElement>(null);
   const concerns = [
     {
@@ -2450,6 +2772,13 @@ function InjuryPage() {
                 "Send for professional review"
               )}
             </button>
+            <button
+              className="secondary-button"
+              onClick={() => setShowICUBeds(true)}
+              style={{ background: "rgba(32, 214, 199, 0.1)", color: "#20d6c7" }}
+            >
+              <Bed size={16} /> View ICU Beds
+            </button>
           </div>
         </div>
       </div>
@@ -2509,6 +2838,16 @@ function InjuryPage() {
           </aside>
         </>
       )}
+      <AnimatePresence>
+        {showICUBeds && (
+          <ICUBedsPanel
+            onClose={() => setShowICUBeds(false)}
+            onOrderBed={(bedId) => {
+              setOrderedBeds([...orderedBeds, bedId]);
+            }}
+          />
+        )}
+      </AnimatePresence>
     </>
   );
 }
@@ -2889,18 +3228,25 @@ export default function App() {
         onSettings={() => setDrawer("settings")}
         onProfile={() => setDrawer("profile")}
         currentPath={path}
+        currentUser={user}
       />
       <main className={cx("main-content", collapsed && "sidebar-collapsed")}>
         <Topbar
           onMenu={() => setMobileOpen(true)}
           onSettings={() => setDrawer("settings")}
           onProfile={() => setDrawer("profile")}
+          currentUser={user}
         />
         <div className="page-content">{page}</div>
       </main>
       <SlideOver
         kind={drawer === "profile" ? "profile" : null}
         close={() => setDrawer(null)}
+        currentUser={user}
+        onProfileChange={(updatedUser) => {
+          setUser(updatedUser);
+          setDrawer(null);
+        }}
       />
       {drawer === "settings" && (
         <>
