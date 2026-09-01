@@ -31,3 +31,33 @@
 @media(max-width:760px){
   .modal-panel{padding:18px;max-height:90vh}
 }
+
+/* Admin Dashboard Styles */
+.admin-page{padding:20px}
+.admin-tabs{display:flex;gap:12px;margin:24px 0 0;border-bottom:1px solid rgba(165,195,235,.12);flex-wrap:wrap}
+.admin-tabs .tab{background:none;border:none;padding:12px 16px;border-bottom:2px solid transparent;color:var(--muted);font-weight:500;font-size:14px;cursor:pointer;transition:all .2s}
+.admin-tabs .tab:hover{color:var(--text)}
+.admin-tabs .tab.active{color:var(--teal);border-bottom-color:var(--teal)}
+.admin-count{display:flex;flex-direction:column;align-items:center;gap:4px;padding:12px 16px;background:rgba(32,214,199,.05);border-radius:8px;border:1px solid rgba(32,214,199,.1)}
+.admin-count strong{font-size:20px;font-weight:700}
+.admin-count span{font-size:11px;color:var(--muted)}
+.admin-count svg{color:var(--teal)}
+.admin-layout{display:grid;grid-template-columns:2fr 1fr;gap:16px;margin-top:16px}
+.admin-users-panel{grid-column:1}
+.add-user-panel{grid-column:2}
+.user-table{display:grid;gap:8px}
+.user-row{display:grid;grid-template-columns:40px 1fr 140px 40px;gap:12px;align-items:center;padding:12px;border:1px solid rgba(165,195,235,.12);border-radius:8px;background:rgba(255,255,255,.02)}
+.user-avatar{width:40px;height:40px;background:rgba(32,214,199,.2);border-radius:6px;display:grid;place-items:center;font-weight:600;font-size:14px;color:var(--teal)}
+.user-row strong{font-size:13px}
+.user-row span{font-size:11px;color:var(--muted)}
+.user-row em{font-size:11px;color:var(--dim);font-style:normal}
+.user-table .danger-button{color:#ef4444}
+.user-table .danger-button:hover{background:rgba(239,68,68,.1)}
+.admin-empty{padding:24px;text-align:center;color:var(--muted);font-size:12px}
+.admin-form{display:grid;gap:12px}
+.admin-form label{display:grid;gap:6px;font-size:12px;font-weight:500}
+.admin-form input,.admin-form select{width:100%;padding:8px 10px;background:#ffffff08;border:1px solid rgba(165,195,235,.12);border-radius:6px;color:var(--text);font-size:13px;font-family:inherit}
+.admin-form input:focus,.admin-form select:focus{outline:none;border-color:var(--teal);background:#ffffff0d}
+.wide{width:100%}
+.teal-text{color:var(--teal)}
+.auth-error{padding:10px;background:rgba(239,68,68,.1);border-left:2px solid #ef4444;color:#ff8a8f;font-size:12px;margin:0;border-radius:4px}

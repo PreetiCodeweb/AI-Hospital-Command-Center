@@ -195,6 +195,8 @@ const metrics = [
 const icuBeds = [
   {
     id: "ICU-101",
+    databaseId: "40000000-0000-0000-0000-000000000004",
+    departmentId: "10000000-0000-0000-0000-000000000002",
     status: "available",
     type: "Critical Care",
     ventilator: true,
@@ -203,6 +205,8 @@ const icuBeds = [
   },
   {
     id: "ICU-102",
+    databaseId: "40000000-0000-0000-0000-000000000005",
+    departmentId: "10000000-0000-0000-0000-000000000002",
     status: "available",
     type: "Critical Care",
     ventilator: true,
@@ -211,6 +215,8 @@ const icuBeds = [
   },
   {
     id: "ICU-103",
+    databaseId: "40000000-0000-0000-0000-000000000006",
+    departmentId: "10000000-0000-0000-0000-000000000002",
     status: "occupied",
     type: "Critical Care",
     ventilator: true,
@@ -219,6 +225,8 @@ const icuBeds = [
   },
   {
     id: "ICU-104",
+    databaseId: "40000000-0000-0000-0000-000000000007",
+    departmentId: "10000000-0000-0000-0000-000000000002",
     status: "available",
     type: "High Dependency",
     ventilator: false,
@@ -2345,16 +2353,46 @@ function ICUBedsPanel({
 }) {
   const [selectedBed, setSelectedBed] = useState<string | null>(null);
   const [orderConfirm, setOrderConfirm] = useState(false);
+  const [error, setError] = useState("");
   const availableBeds = icuBeds.filter((bed) => bed.status === "available");
 
-  const handleOrder = () => {
+  const handleOrder = async () => {
     if (selectedBed) {
-      onOrderBed(selectedBed);
-      setOrderConfirm(true);
-      setTimeout(() => {
-        setOrderConfirm(false);
-        setSelectedBed(null);
-      }, 2000);
+      try {
+        setError("");
+        // Call backend to create the bed order
+        const bed = icuBeds.find((candidate) => candidate.id === selectedBed);
+        if (!bed?.databaseId || !bed.departmentId) {
+          throw new Error("This bed is not connected to the hospital inventory yet.");
+        }
+
+        const response = await fetch("http://localhost:8000/api/v1/admin/bed-orders", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${window.localStorage.getItem("access_token")}`,
+          },
+          body: JSON.stringify({
+            bed_id: bed.databaseId,
+            department_id: bed.departmentId,
+            notes: "Ordered from ICU availability panel",
+          }),
+        });
+
+        if (!response.ok) {
+          throw new Error("Failed to order bed");
+        }
+
+        onOrderBed(selectedBed);
+        setOrderConfirm(true);
+        setTimeout(() => {
+          setOrderConfirm(false);
+          setSelectedBed(null);
+          onClose();
+        }, 2000);
+      } catch (err) {
+        setError(err instanceof Error ? err.message : "Failed to order bed");
+      }
     }
   };
 
@@ -2489,6 +2527,22 @@ function ICUBedsPanel({
             </div>
           ))}
         </div>
+
+        {error && (
+          <div
+            style={{
+              padding: "12px",
+              marginBottom: "12px",
+              borderRadius: "8px",
+              background: "rgba(239, 68, 68, 0.1)",
+              border: "1px solid rgba(239, 68, 68, 0.3)",
+              color: "#ff8a8f",
+              fontSize: "12px",
+            }}
+          >
+            ✗ {error}
+          </div>
+        )}
 
         {orderConfirm && (
           <div

@@ -211,7 +211,10 @@ export function AuthExperience({ mode: initialMode, onAuthenticated }: Props) {
 
 type AdminProps = { currentUser: AppUser };
 export function AdminUsers({ currentUser }: AdminProps) {
+  const [activeTab, setActiveTab] = useState<"users" | "bed-orders" | "reviews">("users");
   const [users, setUsers] = useState<AppUser[]>([]);
+  const [bedOrders, setBedOrders] = useState<any[]>([]);
+  const [reviews, setReviews] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [form, setForm] = useState({
@@ -221,19 +224,44 @@ export function AdminUsers({ currentUser }: AdminProps) {
     role: "operations_manager",
   });
   const admin = ["system_admin", "hospital_admin"].includes(currentUser.role);
-  async function load() {
-    setLoading(true);
+  
+  async function loadUsers() {
     try {
       setUsers(await apiRequest<AppUser[]>("/api/v1/auth/users"));
     } catch (err) {
       setError(errorMessage(err));
+    }
+  }
+
+  async function loadBedOrders() {
+    try {
+      setBedOrders(await apiRequest<any[]>("/api/v1/admin/bed-orders"));
+    } catch (err) {
+      setError(errorMessage(err));
+    }
+  }
+
+  async function loadReviews() {
+    try {
+      setReviews(await apiRequest<any[]>("/api/v1/admin/reviews"));
+    } catch (err) {
+      setError(errorMessage(err));
+    }
+  }
+
+  async function load() {
+    setLoading(true);
+    try {
+      await Promise.all([loadUsers(), loadBedOrders(), loadReviews()]);
     } finally {
       setLoading(false);
     }
   }
+
   useEffect(() => {
     if (admin) load();
   }, [admin]);
+
   async function add(event: FormEvent) {
     event.preventDefault();
     setError("");
@@ -255,6 +283,7 @@ export function AdminUsers({ currentUser }: AdminProps) {
       setError(errorMessage(err));
     }
   }
+
   async function remove(user: AppUser) {
     if (!window.confirm(`Remove ${user.full_name}'s account?`)) return;
     setError("");
@@ -267,6 +296,7 @@ export function AdminUsers({ currentUser }: AdminProps) {
       setError(errorMessage(err));
     }
   }
+
   if (!admin)
     return (
       <div className="empty-page">
@@ -275,120 +305,249 @@ export function AdminUsers({ currentUser }: AdminProps) {
         <p>Your account does not have permission to manage users.</p>
       </div>
     );
+
   return (
     <div className="admin-page">
       <div className="page-header">
         <div>
           <span className="eyebrow">Workspace administration</span>
-          <h1>User management</h1>
+          <h1>Admin Dashboard</h1>
           <p>
-            Review registered users, provision access, and remove accounts when
-            needed.
+            Manage users, view bed orders, and monitor reviews.
           </p>
         </div>
-        <div className="admin-count">
-          <Users size={17} />
-          <strong>{users.length}</strong>
-          <span>registered users</span>
+        <div style={{ display: "flex", gap: "12px" }}>
+          <div className="admin-count">
+            <Users size={17} />
+            <strong>{users.length}</strong>
+            <span>users</span>
+          </div>
+          <div className="admin-count">
+            <Activity size={17} />
+            <strong>{bedOrders.length}</strong>
+            <span>bed orders</span>
+          </div>
+          <div className="admin-count">
+            <ShieldCheck size={17} />
+            <strong>{reviews.length}</strong>
+            <span>reviews</span>
+          </div>
         </div>
       </div>
-      <div className="admin-layout">
-        <section className="panel admin-users-panel">
+
+      <div className="admin-tabs">
+        <button
+          className={activeTab === "users" ? "tab active" : "tab"}
+          onClick={() => setActiveTab("users")}
+        >
+          <Users size={16} /> Users
+        </button>
+        <button
+          className={activeTab === "bed-orders" ? "tab active" : "tab"}
+          onClick={() => setActiveTab("bed-orders")}
+        >
+          <Activity size={16} /> Bed Orders
+        </button>
+        <button
+          className={activeTab === "reviews" ? "tab active" : "tab"}
+          onClick={() => setActiveTab("reviews")}
+        >
+          <ShieldCheck size={16} /> Reviews
+        </button>
+      </div>
+
+      {activeTab === "users" && (
+        <div className="admin-layout">
+          <section className="panel admin-users-panel">
+            <div className="section-title">
+              <div>
+                <h2>Registered users</h2>
+                <span>
+                  {loading
+                    ? "Loading user records…"
+                    : "Accounts stored in the MedSync database"}
+                </span>
+              </div>
+            </div>
+            {error && <p className="auth-error">{error}</p>}
+            <div className="user-table">
+              {!loading &&
+                users.map((user) => (
+                  <div className="user-row" key={user.id}>
+                    <div className="user-avatar">
+                      {user.full_name.slice(0, 1).toUpperCase()}
+                    </div>
+                    <div>
+                      <strong>{user.full_name}</strong>
+                      <span>{user.email}</span>
+                    </div>
+                    <em>{user.role.replace("_", " ")}</em>
+                    <button
+                      className="icon-button danger-button"
+                      title={`Delete ${user.full_name}`}
+                      onClick={() => remove(user)}
+                      disabled={user.id === currentUser.id}
+                    >
+                      <Trash2 size={16} />
+                    </button>
+                  </div>
+                ))}
+              {!loading && users.length === 0 && (
+                <p className="admin-empty">No users registered yet.</p>
+              )}
+            </div>
+          </section>
+          <section className="panel add-user-panel">
+            <div className="section-title">
+              <div>
+                <h2>Add a user</h2>
+                <span>Create an account with the right role.</span>
+              </div>
+              <UserPlus size={18} className="teal-text" />
+            </div>
+            <form className="admin-form" onSubmit={add}>
+              <label>
+                Full name
+                <input
+                  value={form.full_name}
+                  required
+                  minLength={2}
+                  onChange={(e) =>
+                    setForm({ ...form, full_name: e.target.value })
+                  }
+                />
+              </label>
+              <label>
+                Email address
+                <input
+                  value={form.email}
+                  required
+                  type="email"
+                  onChange={(e) => setForm({ ...form, email: e.target.value })}
+                />
+              </label>
+              <label>
+                Temporary password
+                <input
+                  value={form.password}
+                  required
+                  type="password"
+                  minLength={8}
+                  onChange={(e) => setForm({ ...form, password: e.target.value })}
+                />
+              </label>
+              <label>
+                Role
+                <select
+                  value={form.role}
+                  onChange={(e) => setForm({ ...form, role: e.target.value })}
+                >
+                  <option value="operations_manager">Operations manager</option>
+                  <option value="hospital_admin">Hospital administrator</option>
+                  <option value="doctor">Doctor</option>
+                  <option value="nurse">Nurse</option>
+                </select>
+              </label>
+              <button className="primary-button wide">
+                <UserPlus size={16} /> Add user
+              </button>
+            </form>
+          </section>
+        </div>
+      )}
+
+      {activeTab === "bed-orders" && (
+        <section className="panel">
           <div className="section-title">
             <div>
-              <h2>Registered users</h2>
-              <span>
-                {loading
-                  ? "Loading user records…"
-                  : "Accounts stored in the MedSync database"}
-              </span>
+              <h2>Bed Orders</h2>
+              <span>{loading ? "Loading…" : `${bedOrders.length} total orders`}</span>
             </div>
           </div>
           {error && <p className="auth-error">{error}</p>}
-          <div className="user-table">
-            {!loading &&
-              users.map((user) => (
-                <div className="user-row" key={user.id}>
-                  <div className="user-avatar">
-                    {user.full_name.slice(0, 1).toUpperCase()}
-                  </div>
-                  <div>
-                    <strong>{user.full_name}</strong>
-                    <span>{user.email}</span>
-                  </div>
-                  <em>{user.role.replace("_", " ")}</em>
-                  <button
-                    className="icon-button danger-button"
-                    title={`Delete ${user.full_name}`}
-                    onClick={() => remove(user)}
-                    disabled={user.id === currentUser.id}
-                  >
-                    <Trash2 size={16} />
-                  </button>
-                </div>
-              ))}
-            {!loading && users.length === 0 && (
-              <p className="admin-empty">No users registered yet.</p>
+          <div style={{ overflowX: "auto" }}>
+            <table style={{
+              width: "100%",
+              borderCollapse: "collapse",
+              fontSize: "13px"
+            }}>
+              <thead>
+                <tr style={{ borderBottom: "1px solid rgba(165,195,235,.12)" }}>
+                  <th style={{ padding: "12px", textAlign: "left", fontWeight: 600 }}>Order ID</th>
+                  <th style={{ padding: "12px", textAlign: "left", fontWeight: 600 }}>User</th>
+                  <th style={{ padding: "12px", textAlign: "left", fontWeight: 600 }}>Bed ID</th>
+                  <th style={{ padding: "12px", textAlign: "left", fontWeight: 600 }}>Status</th>
+                  <th style={{ padding: "12px", textAlign: "left", fontWeight: 600 }}>Date</th>
+                </tr>
+              </thead>
+              <tbody>
+                {!loading && bedOrders.map((order) => (
+                  <tr key={order.id} style={{ borderBottom: "1px solid rgba(165,195,235,.08)" }}>
+                    <td style={{ padding: "12px" }}>{order.id.slice(0, 8)}...</td>
+                    <td style={{ padding: "12px" }}>{order.user_id.slice(0, 8)}...</td>
+                    <td style={{ padding: "12px" }}>{order.bed_id.slice(0, 8)}...</td>
+                    <td style={{ padding: "12px" }}>
+                      <span style={{
+                        padding: "2px 8px",
+                        borderRadius: "4px",
+                        background: order.status === "confirmed" ? "rgba(34,197,94,0.1)" : "rgba(245,158,11,0.1)",
+                        color: order.status === "confirmed" ? "#22c55e" : "#f59e0b",
+                        fontSize: "11px"
+                      }}>
+                        {order.status}
+                      </span>
+                    </td>
+                    <td style={{ padding: "12px" }}>
+                      {new Date(order.order_date).toLocaleDateString()}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+            {!loading && bedOrders.length === 0 && (
+              <p className="admin-empty">No bed orders yet.</p>
             )}
           </div>
         </section>
-        <section className="panel add-user-panel">
+      )}
+
+      {activeTab === "reviews" && (
+        <section className="panel">
           <div className="section-title">
             <div>
-              <h2>Add a user</h2>
-              <span>Create an account with the right role.</span>
+              <h2>User Reviews</h2>
+              <span>{loading ? "Loading…" : `${reviews.length} total reviews`}</span>
             </div>
-            <UserPlus size={18} className="teal-text" />
           </div>
-          <form className="admin-form" onSubmit={add}>
-            <label>
-              Full name
-              <input
-                value={form.full_name}
-                required
-                minLength={2}
-                onChange={(e) =>
-                  setForm({ ...form, full_name: e.target.value })
-                }
-              />
-            </label>
-            <label>
-              Email address
-              <input
-                value={form.email}
-                required
-                type="email"
-                onChange={(e) => setForm({ ...form, email: e.target.value })}
-              />
-            </label>
-            <label>
-              Temporary password
-              <input
-                value={form.password}
-                required
-                type="password"
-                minLength={8}
-                onChange={(e) => setForm({ ...form, password: e.target.value })}
-              />
-            </label>
-            <label>
-              Role
-              <select
-                value={form.role}
-                onChange={(e) => setForm({ ...form, role: e.target.value })}
-              >
-                <option value="operations_manager">Operations manager</option>
-                <option value="hospital_admin">Hospital administrator</option>
-                <option value="doctor">Doctor</option>
-                <option value="nurse">Nurse</option>
-              </select>
-            </label>
-            <button className="primary-button wide">
-              <UserPlus size={16} /> Add user
-            </button>
-          </form>
+          {error && <p className="auth-error">{error}</p>}
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(300px, 1fr))", gap: "12px" }}>
+            {!loading && reviews.map((review) => (
+              <div key={review.id} style={{
+                padding: "14px",
+                border: "1px solid rgba(165,195,235,.12)",
+                borderRadius: "8px",
+                background: "rgba(255,255,255,.02)"
+              }}>
+                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "8px" }}>
+                  <strong style={{ fontSize: "12px" }}>★ {review.rating}/5</strong>
+                  <span style={{ fontSize: "10px", color: "var(--dim)" }}>
+                    {new Date(review.review_date).toLocaleDateString()}
+                  </span>
+                </div>
+                <p style={{ margin: "8px 0", fontSize: "12px", color: "var(--muted)", lineHeight: 1.5 }}>
+                  {review.comment}
+                </p>
+                <span style={{ fontSize: "9px", color: "var(--dim)" }}>
+                  By: {review.user_id.slice(0, 8)}...
+                </span>
+              </div>
+            ))}
+          </div>
+          {!loading && reviews.length === 0 && (
+            <p className="admin-empty">No reviews yet.</p>
+          )}
         </section>
-      </div>
+      )}
     </div>
   );
 }

@@ -161,3 +161,24 @@ class Recommendation(Base):
     rationale: Mapped[str | None] = mapped_column(Text)
     priority: Mapped[int] = mapped_column(Integer, default=3)
     status: Mapped[str] = mapped_column(String(30), default="proposed")
+
+class BedOrder(Base):
+    __tablename__ = "bed_orders"
+    id: Mapped[UUID] = mapped_column("order_id", SAUUID(as_uuid=True), primary_key=True, server_default=text("gen_random_uuid()"))
+    user_id: Mapped[UUID] = mapped_column(ForeignKey("app_users.user_id"), type_=SAUUID(as_uuid=True))
+    bed_id: Mapped[UUID] = mapped_column(ForeignKey("beds.bed_id"), type_=SAUUID(as_uuid=True))
+    department_id: Mapped[UUID] = mapped_column(ForeignKey("departments.department_id"), type_=SAUUID(as_uuid=True))
+    order_date: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=datetime.utcnow)
+    status: Mapped[str] = mapped_column(String(30), default="pending")  # pending, confirmed, completed, cancelled
+    notes: Mapped[str | None] = mapped_column(Text)
+    user: Mapped[User] = relationship()
+    
+class Review(Base):
+    __tablename__ = "reviews"
+    id: Mapped[UUID] = mapped_column("review_id", SAUUID(as_uuid=True), primary_key=True, server_default=text("gen_random_uuid()"))
+    user_id: Mapped[UUID] = mapped_column(ForeignKey("app_users.user_id"), type_=SAUUID(as_uuid=True))
+    bed_order_id: Mapped[UUID | None] = mapped_column(ForeignKey("bed_orders.order_id"), type_=SAUUID(as_uuid=True), nullable=True)
+    rating: Mapped[int] = mapped_column(Integer)  # 1-5 stars
+    comment: Mapped[str] = mapped_column(Text)
+    review_date: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=datetime.utcnow)
+    user: Mapped[User] = relationship()

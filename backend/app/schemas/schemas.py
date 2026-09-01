@@ -189,3 +189,46 @@ class DatasetUploadResponse(BaseModel):
     department_types_found: list[str]
     date_range: str | None
     message: str
+
+
+class BedOrderCreate(BaseModel):
+    bed_id: str
+    department_id: str
+    notes: str | None = None
+
+
+class BedOrderOut(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+    id: str
+    user_id: str
+    bed_id: str
+    department_id: str
+    order_date: datetime
+    status: str
+    notes: str | None
+
+    @field_validator('id', 'user_id', 'bed_id', 'department_id', mode='before')
+    @classmethod
+    def validate_ids(cls, value):
+        return _normalize_uuid(value)
+
+
+class ReviewCreate(BaseModel):
+    bed_order_id: str | None = None
+    rating: int = Field(ge=1, le=5)
+    comment: str = Field(min_length=1, max_length=1000)
+
+
+class ReviewOut(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+    id: str
+    user_id: str
+    bed_order_id: str | None
+    rating: int
+    comment: str
+    review_date: datetime
+
+    @field_validator('id', 'user_id', 'bed_order_id', mode='before')
+    @classmethod
+    def validate_ids(cls, value):
+        return _normalize_uuid(value)
