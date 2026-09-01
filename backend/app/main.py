@@ -1,12 +1,12 @@
 from contextlib import asynccontextmanager
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-
 from app.core.config import get_settings
 from app.database.session import Base, SessionLocal, engine
 from app.models import models  # register models
 from app.api.routes import auth, dashboard, forecast, simulation, operations
 from app.services.seed import seed_demo
+from app.api.routes import injury_detection
 
 settings = get_settings()
 
@@ -41,6 +41,7 @@ app.include_router(dashboard.router, prefix="/api")
 app.include_router(forecast.router, prefix="/api")
 app.include_router(simulation.router, prefix="/api")
 app.include_router(operations.router, prefix="/api/v1")
+app.include_router(injury_detection.router, prefix=settings.API_V1_PREFIX)
 
 @app.get("/", tags=["System"])
 def root():
