@@ -1,6 +1,8 @@
 import { apiRequest } from './apiClient';
 
 type TokenResponse = { access_token: string; token_type: string };
+export type AppUser = { id: string; email: string; full_name: string; role: string };
+export type RegistrationInput = Pick<AppUser, 'email' | 'full_name'> & { password: string };
 
 export async function login(email: string, password: string): Promise<TokenResponse> {
   const body = new URLSearchParams({ username: email, password });
@@ -11,6 +13,10 @@ export async function login(email: string, password: string): Promise<TokenRespo
   });
   window.localStorage.setItem('access_token', token.access_token);
   return token;
+}
+
+export async function register(input: RegistrationInput): Promise<AppUser> {
+  return apiRequest<AppUser>('/api/v1/auth/register', { method: 'POST', body: JSON.stringify(input) });
 }
 
 export function logout() {

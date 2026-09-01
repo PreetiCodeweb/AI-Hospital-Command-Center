@@ -8,6 +8,11 @@ WORKDIR /app
 COPY --from=dependencies /app/node_modules ./node_modules
 COPY . .
 ENV NEXT_TELEMETRY_DISABLED=1
+
+# Expose BACKEND_URL so next.config.mjs bakes in the correct proxy route
+ARG BACKEND_URL=http://backend:8000
+ENV BACKEND_URL=$BACKEND_URL
+
 RUN mkdir -p public
 RUN npm run build
 

@@ -1,6 +1,5 @@
-import App from './App';
-import { RecommendationInteractions } from '../components/RecommendationInteractions';
+import App from "./App";
 
 export default function Page() {
-	return <><App /><RecommendationInteractions /></>;
+  return <App />;
 }

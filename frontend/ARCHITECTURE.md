@@ -1,6 +1,6 @@
-# MediNexus architecture
+# MedSync architecture
 
-MediNexus is currently a mock-data prototype with a replaceable service boundary.
+MedSync is currently a mock-data prototype with a replaceable service boundary.
 
 ```text
 Next.js / React / TypeScript frontend

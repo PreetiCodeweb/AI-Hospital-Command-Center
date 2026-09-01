@@ -14,5 +14,6 @@ export async function apiRequest<T>(path: string, init: RequestInit = {}): Promi
     const detail = await response.text();
     throw new Error(detail || `Request failed with status ${response.status}`);
   }
+  if (response.status === 204) return undefined as T;
   return response.json() as Promise<T>;
 }

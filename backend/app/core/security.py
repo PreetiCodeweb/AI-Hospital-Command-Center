@@ -16,10 +16,16 @@ oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/api/v1/auth/login")
 
 
 def hash_password(password: str) -> str:
+    if not password:
+        raise ValueError('Password is required')
+    if len(password.encode('utf-8')) > 72:
+        raise ValueError('Password must be 72 bytes or fewer for bcrypt compatibility')
     return pwd_context.hash(password)
 
 
 def verify_password(plain: str, hashed: str) -> bool:
+    if len(plain.encode('utf-8')) > 72:
+        raise ValueError('Password must be 72 bytes or fewer for bcrypt compatibility')
     return pwd_context.verify(plain, hashed)
 
 
