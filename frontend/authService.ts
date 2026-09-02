@@ -1,7 +1,7 @@
 import { apiRequest } from './apiClient';
 
-type TokenResponse = { access_token: string; token_type: string };
-export type AppUser = { id: string; email: string; full_name: string; role: string };
+export type TokenResponse = { access_token: string; token_type: string; role?: string | null };
+export type AppUser = { id: string; email: string; full_name: string; role: string; created_at?: string | null };
 export type RegistrationInput = Pick<AppUser, 'email' | 'full_name'> & { password: string };
 export type ProfileUpdateInput = { full_name: string };
 
@@ -48,8 +48,8 @@ export async function changePassword(oldPassword: string, newPassword: string): 
   });
 }
 
-export function getCurrentUser() {
-  return apiRequest('/api/v1/auth/me');
+export function getCurrentUser(): Promise<AppUser> {
+  return apiRequest<AppUser>('/api/v1/auth/me');
 }
 
 export function updateCurrentUserProfile(input: ProfileUpdateInput) {

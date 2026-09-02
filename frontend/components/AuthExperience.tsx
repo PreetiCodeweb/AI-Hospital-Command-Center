@@ -13,6 +13,7 @@ import {
 } from "lucide-react";
 import { apiRequest } from "../apiClient";
 import { login, register, type AppUser } from "../authService";
+import type { BedOrder, Review } from "../types";
 
 type Mode = "login" | "register";
 type Props = { mode: Mode; onAuthenticated: (user: AppUser) => void };
@@ -51,9 +52,10 @@ export function AuthExperience({ mode: initialMode, onAuthenticated }: Props) {
     try {
       if (mode === "register")
         await register({ full_name: name, email, password });
-      await login(email, password);
+      const token = await login(email, password);
       const user = await apiRequest<AppUser>("/api/v1/auth/me");
       onAuthenticated(user);
+      window.location.assign(token.role === "system_admin" || token.role === "hospital_admin" ? "/admin" : "/dashboard");
     } catch (err) {
       setError(errorMessage(err));
     } finally {
@@ -154,8 +156,8 @@ export function AuthExperience({ mode: initialMode, onAuthenticated }: Props) {
                 onChange={(e) => setPassword(e.target.value)}
                 required
                 type="password"
-                minLength={8}
-                placeholder="At least 8 characters"
+                minLength={6}
+                placeholder="At least 6 characters"
                 autoComplete={registering ? "new-password" : "current-password"}
               />
             </label>
@@ -213,10 +215,11 @@ type AdminProps = { currentUser: AppUser };
 export function AdminUsers({ currentUser }: AdminProps) {
   const [activeTab, setActiveTab] = useState<"users" | "bed-orders" | "reviews">("users");
   const [users, setUsers] = useState<AppUser[]>([]);
-  const [bedOrders, setBedOrders] = useState<any[]>([]);
-  const [reviews, setReviews] = useState<any[]>([]);
+  const [bedOrders, setBedOrders] = useState<BedOrder[]>([]);
+  const [reviews, setReviews] = useState<Review[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+  const [search, setSearch] = useState("");
   const [form, setForm] = useState({
     full_name: "",
     email: "",
@@ -227,7 +230,7 @@ export function AdminUsers({ currentUser }: AdminProps) {
   
   async function loadUsers() {
     try {
-      setUsers(await apiRequest<AppUser[]>("/api/v1/auth/users"));
+      setUsers(await apiRequest<AppUser[]>("/api/v1/admin/users"));
     } catch (err) {
       setError(errorMessage(err));
     }
@@ -235,7 +238,7 @@ export function AdminUsers({ currentUser }: AdminProps) {
 
   async function loadBedOrders() {
     try {
-      setBedOrders(await apiRequest<any[]>("/api/v1/admin/bed-orders"));
+      setBedOrders(await apiRequest<BedOrder[]>("/api/v1/admin/orders"));
     } catch (err) {
       setError(errorMessage(err));
     }
@@ -243,7 +246,7 @@ export function AdminUsers({ currentUser }: AdminProps) {
 
   async function loadReviews() {
     try {
-      setReviews(await apiRequest<any[]>("/api/v1/admin/reviews"));
+      setReviews(await apiRequest<Review[]>("/api/v1/admin/reviews"));
     } catch (err) {
       setError(errorMessage(err));
     }
@@ -370,9 +373,10 @@ export function AdminUsers({ currentUser }: AdminProps) {
               </div>
             </div>
             {error && <p className="auth-error">{error}</p>}
+            <input aria-label="Search registered users" placeholder="Search by name or email" value={search} onChange={(event) => setSearch(event.target.value)} />
             <div className="user-table">
               {!loading &&
-                users.map((user) => (
+                users.filter((user) => `${user.full_name} ${user.email}`.toLowerCase().includes(search.toLowerCase())).map((user) => (
                   <div className="user-row" key={user.id}>
                     <div className="user-avatar">
                       {user.full_name.slice(0, 1).toUpperCase()}
@@ -382,6 +386,7 @@ export function AdminUsers({ currentUser }: AdminProps) {
                       <span>{user.email}</span>
                     </div>
                     <em>{user.role.replace("_", " ")}</em>
+                    <span>{user.created_at ? new Date(user.created_at).toLocaleDateString() : "—"}</span>
                     <button
                       className="icon-button danger-button"
                       title={`Delete ${user.full_name}`}
@@ -432,7 +437,7 @@ export function AdminUsers({ currentUser }: AdminProps) {
                   value={form.password}
                   required
                   type="password"
-                  minLength={8}
+                  minLength={6}
                   onChange={(e) => setForm({ ...form, password: e.target.value })}
                 />
               </label>
@@ -487,15 +492,9 @@ export function AdminUsers({ currentUser }: AdminProps) {
                     <td style={{ padding: "12px" }}>{order.user_id.slice(0, 8)}...</td>
                     <td style={{ padding: "12px" }}>{order.bed_id.slice(0, 8)}...</td>
                     <td style={{ padding: "12px" }}>
-                      <span style={{
-                        padding: "2px 8px",
-                        borderRadius: "4px",
-                        background: order.status === "confirmed" ? "rgba(34,197,94,0.1)" : "rgba(245,158,11,0.1)",
-                        color: order.status === "confirmed" ? "#22c55e" : "#f59e0b",
-                        fontSize: "11px"
-                      }}>
-                        {order.status}
-                      </span>
+                      <select value={order.status} onChange={async (event) => { const status = event.target.value; try { const updated = await apiRequest<BedOrder>(`/api/v1/admin/orders/${order.id}`, { method: "PATCH", body: JSON.stringify({ status }) }); setBedOrders((items) => items.map((item) => item.id === updated.id ? updated : item)); } catch (err) { setError(errorMessage(err)); } }} aria-label={`Update order ${order.id} status`}>
+                        {['pending', 'approved', 'fulfilled', 'rejected'].map((status) => <option value={status} key={status}>{status}</option>)}
+                      </select>
                     </td>
                     <td style={{ padding: "12px" }}>
                       {new Date(order.order_date).toLocaleDateString()}

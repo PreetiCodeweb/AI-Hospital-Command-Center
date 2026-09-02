@@ -3,7 +3,7 @@ from datetime import datetime, timedelta, timezone
 from fastapi import Depends, HTTPException, status
 from fastapi.security import OAuth2PasswordBearer
 from jose import JWTError, jwt
-from passlib.context import CryptContext
+import bcrypt
 from sqlalchemy.orm import Session
 
 from app.core.config import get_settings
@@ -11,7 +11,6 @@ from app.database.session import get_db
 from app.models.models import User
 
 settings = get_settings()
-pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/api/v1/auth/login")
 
 
@@ -20,21 +19,24 @@ def hash_password(password: str) -> str:
         raise ValueError('Password is required')
     if len(password.encode('utf-8')) > 72:
         raise ValueError('Password must be 72 bytes or fewer for bcrypt compatibility')
-    return pwd_context.hash(password)
+    return bcrypt.hashpw(password.encode('utf-8'), bcrypt.gensalt()).decode('utf-8')
 
 
 def verify_password(plain: str, hashed: str) -> bool:
     if len(plain.encode('utf-8')) > 72:
         raise ValueError('Password must be 72 bytes or fewer for bcrypt compatibility')
-    return pwd_context.verify(plain, hashed)
+    return bcrypt.checkpw(plain.encode('utf-8'), hashed.encode('utf-8'))
 
 
-def create_access_token(subject: str) -> str:
+def create_access_token(subject: str, role: str | None = None) -> str:
     expires = datetime.now(timezone.utc) + timedelta(
         minutes=settings.ACCESS_TOKEN_EXPIRE_MINUTES
     )
+    claims = {"sub": subject, "exp": expires}
+    if role:
+        claims["role"] = role
     return jwt.encode(
-        {"sub": subject, "exp": expires},
+        claims,
         settings.SECRET_KEY,
         algorithm="HS256",
     )

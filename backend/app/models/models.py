@@ -46,6 +46,8 @@ class User(Base):
         DateTime(timezone=True),
         nullable=True,
     )
+    last_login_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=datetime.utcnow)
 
 class DepartmentType(str, Enum):
     ICU = "ICU"
@@ -178,7 +180,9 @@ class BedOrder(Base):
     bed_id: Mapped[UUID] = mapped_column(ForeignKey("beds.bed_id"), type_=SAUUID(as_uuid=True))
     department_id: Mapped[UUID] = mapped_column(ForeignKey("departments.department_id"), type_=SAUUID(as_uuid=True))
     order_date: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=datetime.utcnow)
-    status: Mapped[str] = mapped_column(String(30), default="pending")  # pending, confirmed, completed, cancelled
+    status: Mapped[str] = mapped_column(String(30), default="pending")
+    bed_type: Mapped[str] = mapped_column(String(30), default="icu")
+    quantity: Mapped[int] = mapped_column(Integer, default=1)
     notes: Mapped[str | None] = mapped_column(Text)
     user: Mapped[User] = relationship()
     

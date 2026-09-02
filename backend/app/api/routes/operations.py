@@ -1,12 +1,15 @@
 from datetime import datetime
 from fastapi import APIRouter, Depends, HTTPException, UploadFile, File
+from uuid import UUID
 from sqlalchemy.orm import Session
 import pandas as pd
 from io import BytesIO
 
 from app.database.session import get_db
+from app.core.security import get_current_user
+from app.models.models import User, BedOrder
 from app.models.models import Department, DepartmentType, Bed, BedStatus, Staff, Equipment, Alert
-from app.schemas.schemas import BedOut, BedStatusUpdate, StaffOut, EquipmentOut, BedSummary, OptimizationRequest, OptimizationResponse, RecommendationOut, AlertOut, DatasetUploadResponse
+from app.schemas.schemas import BedOut, BedStatusUpdate, StaffOut, EquipmentOut, BedSummary, BedOrderCreate, BedOrderOut, OptimizationRequest, OptimizationResponse, RecommendationOut, AlertOut, DatasetUploadResponse
 from app.services.optimization import optimize_department
 from app.services.recommendations import build_recommendation
 from app.ml.data_utils import ingest_dataframe
@@ -169,6 +172,18 @@ async def simulate_injury_scan(payload: dict):
         "patient_ref": patient_ref,
         "region_hint": region_hint,
     }
+
+@router.post("/orders", response_model=BedOrderOut, status_code=201)
+def create_order(payload: BedOrderCreate, current_user: User = Depends(get_current_user), db: Session = Depends(get_db)):
+    try:
+        order = BedOrder(user_id=current_user.id, bed_id=UUID(payload.bed_id), department_id=UUID(payload.department_id), bed_type=payload.bed_type, quantity=payload.quantity, notes=payload.notes)
+    except ValueError as error:
+        raise HTTPException(status_code=422, detail="Invalid bed or department identifier") from error
+    db.add(order)
+    db.commit()
+    db.refresh(order)
+    return order
+
 
 @router.post("/optimize", response_model=OptimizationResponse)
 def optimize(payload: OptimizationRequest, db: Session = Depends(get_db)):

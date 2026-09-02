@@ -1,27 +1,39 @@
-# MedSync architecture
+# MedSync frontend architecture
 
-MedSync is currently a mock-data prototype with a replaceable service boundary.
+MedSync is a Next.js 15 / React 19 client for the FastAPI hospital operations API.
 
 ```text
-Next.js / React / TypeScript frontend
-                |
-         Java REST API layer
-                |
-          Oracle SQL database
-                |
-        Python AI / ML services
+Next.js App Router + client command-center shell
+                 |
+       native fetch API client
+       (same-origin /api rewrite)
+                 |
+          FastAPI /api/v1
+                 |
+       SQLAlchemy + PostgreSQL
+                 |
+     forecasting and operations services
 ```
 
-Planned AI services include demand forecasting, risk prediction, resource optimization, anomaly detection, simulation, computer vision analysis, and recommendation generation.
+## Frontend boundaries
 
-The prototype exposes the intended API contracts:
+- `app/App.tsx` owns the authenticated shell and legacy command-center route presentation.
+- `components/AuthExperience.tsx` owns login, registration, and admin operations.
+- `components/ResourcesConnected.tsx` owns live bed inventory and ICU order submission.
+- `components/InjuryScanner.tsx` owns the upload/simulated injury decision-support flow.
+- `apiClient.ts` is the single fetch boundary and attaches the stored bearer token.
+- `types/index.ts` contains shared frontend domain contracts.
 
-- `GET /api/dashboard`
-- `GET /api/resources`
-- `GET /api/forecast`
-- `POST /api/simulations`
-- `GET /api/digital-twin`
-- `POST /api/injury-analysis`
-- `GET /api/recommendations`
+## API contracts
 
-The current UI keeps operational recommendations human-reviewed and clearly labels injury analysis as decision-support only.
+- `GET /api/v1/dashboard`
+- `GET /api/v1/beds`, `GET /api/v1/beds/{department_type}`
+- `POST /api/v1/orders`
+- `GET /api/v1/forecast/{department_type}`, `POST /api/v1/forecast`
+- `POST /api/v1/simulations`
+- `GET /api/v1/digital-twin`
+- `POST /api/v1/injury-analysis/upload`, `POST /api/v1/injury-analysis/simulate`
+- `GET /api/v1/recommendations`
+- `GET/PATCH /api/v1/admin/users`, `/api/v1/admin/orders/{id}`
+
+All clinical decision-support outputs are assistive and require authorized human review.

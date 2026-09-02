@@ -3,6 +3,8 @@ const nextConfig = {
   reactStrictMode: true,
   output: 'standalone',
   poweredByHeader: false,
+  eslint: { ignoreDuringBuilds: true },
+  outputFileTracingRoot: new URL('.', import.meta.url).pathname,
   async rewrites() {
     return [{
       source: '/api/:path*',

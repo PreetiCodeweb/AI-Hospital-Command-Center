@@ -11,11 +11,47 @@ services:
       - "5433:5432"
     volumes:
       - hospital_command_center_pgdata:/var/lib/postgresql/data
+      - ./dbms/migrations/001_initial_schema.sql:/docker-entrypoint-initdb.d/001_initial_schema.sql:ro
+      - ./dbms/seeds/001_demo_data.sql:/docker-entrypoint-initdb.d/002_demo_data.sql:ro
+      - ./dbms/views/001_command_center_views.sql:/docker-entrypoint-initdb.d/003_command_center_views.sql:ro
+      - ./dbms/migrations/003_add_bed_orders_and_reviews.sql:/docker-entrypoint-initdb.d/004_add_bed_orders_and_reviews.sql:ro
+      - ./dbms/migrations/004_add_order_details.sql:/docker-entrypoint-initdb.d/005_add_order_details.sql:ro
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U hospital -d hospital_command_center"]
       interval: 5s
       timeout: 5s
       retries: 10
+
+  backend:
+    build: ./backend
+    restart: unless-stopped
+    ports:
+      - "8000:8000"
+    environment:
+      ENVIRONMENT: development
+      DATABASE_URL: postgresql+psycopg://hospital:hospital_dev_password@postgres:5432/hospital_command_center
+      SECRET_KEY: ${SECRET_KEY:-local-development-secret-change-me}
+      CORS_ORIGINS: http://localhost:3000
+      FRONTEND_URL: http://localhost:3000
+      AUTO_SEED: "true"
+      ADMIN_USERNAME: ${ADMIN_USERNAME:-roselyn_yu}
+      ADMIN_EMAIL: ${ADMIN_EMAIL:-roselyn_yu@northstar.example}
+      ADMIN_PASSWORD: ${ADMIN_PASSWORD:-}
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+  frontend:
+    build:
+      context: ./frontend
+      args:
+        BACKEND_URL: http://backend:8000
+    environment:
+      BACKEND_URL: http://backend:8000
+    ports:
+      - "3000:3000"
+    depends_on:
+      - backend
 
 volumes:
   hospital_command_center_pgdata:

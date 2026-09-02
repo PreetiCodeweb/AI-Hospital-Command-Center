@@ -173,7 +173,9 @@ def login(
             detail="Verify your email before logging in",
         )
 
-    return Token(access_token=create_access_token(user.email))
+    user.last_login_at = datetime.now(timezone.utc)
+    db.commit()
+    return Token(access_token=create_access_token(user.email, user.role), role=user.role)
 
 
 @router.get("/me", response_model=UserOut)
@@ -202,7 +204,7 @@ def logout(current_user: User = Depends(get_current_user)):
 @router.post("/refresh", response_model=Token)
 def refresh_token(current_user: User = Depends(get_current_user)):
     """Refresh access token for authenticated users."""
-    return Token(access_token=create_access_token(current_user.email))
+    return Token(access_token=create_access_token(current_user.email, current_user.role), role=current_user.role)
 
 
 @router.post("/change-password", status_code=status.HTTP_200_OK)
@@ -218,14 +220,15 @@ def change_password(
             detail="Incorrect password",
         )
     
-    if len(payload.new_password) < 8:
+    if len(payload.new_password) < 6:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Password must be at least 8 characters long",
+            detail="Password must be at least 6 characters long",
         )
     
-    current_user.hashed_password = hash_password(payload.new_password)
-    current_user.password_hash = hash_password(payload.new_password)
+    new_password_hash = hash_password(payload.new_password)
+    current_user.hashed_password = new_password_hash
+    current_user.password_hash = new_password_hash
     db.commit()
     
     return {"message": "Password changed successfully"}

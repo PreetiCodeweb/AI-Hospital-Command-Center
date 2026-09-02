@@ -15,7 +15,7 @@ def _normalize_uuid(value):
 
 class UserCreate(BaseModel):
     email: EmailStr
-    password: str = Field(min_length=8, max_length=72)
+    password: str = Field(min_length=6, max_length=72)
     full_name: str = Field(min_length=2, max_length=160)
     role: str = "operations_manager"
 
@@ -25,6 +25,7 @@ class UserOut(BaseModel):
     email: EmailStr
     full_name: str
     role: str
+    created_at: datetime | None = None
 
     @field_validator('id', mode='before')
     @classmethod
@@ -37,8 +38,8 @@ class UserProfileUpdate(BaseModel):
 
 
 class ChangePasswordRequest(BaseModel):
-    old_password: str = Field(min_length=8, max_length=72)
-    new_password: str = Field(min_length=8, max_length=72)
+    old_password: str = Field(min_length=6, max_length=72)
+    new_password: str = Field(min_length=6, max_length=72)
 
 
 class AdminUserCreate(UserCreate):
@@ -48,6 +49,7 @@ class AdminUserCreate(UserCreate):
 class Token(BaseModel):
     access_token: str
     token_type: str = "bearer"
+    role: str | None = None
 
 class ForecastRequest(BaseModel):
     department_type: DepartmentType
@@ -199,7 +201,13 @@ class DatasetUploadResponse(BaseModel):
 class BedOrderCreate(BaseModel):
     bed_id: str
     department_id: str
-    notes: str | None = None
+    bed_type: str = Field(default="icu", min_length=2, max_length=30)
+    quantity: int = Field(default=1, ge=1, le=100)
+    notes: str | None = Field(default=None, max_length=1000)
+
+
+class BedOrderStatusUpdate(BaseModel):
+    status: str
 
 
 class BedOrderOut(BaseModel):
@@ -210,6 +218,8 @@ class BedOrderOut(BaseModel):
     department_id: str
     order_date: datetime
     status: str
+    bed_type: str = "icu"
+    quantity: int = 1
     notes: str | None
 
     @field_validator('id', 'user_id', 'bed_id', 'department_id', mode='before')

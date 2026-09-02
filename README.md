@@ -547,6 +547,8 @@ Hospital Staff
 
 # 🧪 Development Setup
 
+> **Authoritative setup guide:** See [`DEVELOPER_SETUP_RUNBOOK.md`](DEVELOPER_SETUP_RUNBOOK.md) for clean-machine prerequisites, Docker Compose, local virtualenv setup, environment variables, startup, smoke tests, troubleshooting, and handoff. The older quick-start snippets below are retained for historical context; use the runbook for the current stack.
+
 ## Prerequisites
 
 Install:
@@ -563,7 +565,7 @@ Install:
 ## Clone Repository
 
 ```bash
-git clone https://github.com/YOUR-USERNAME/AI-Hospital-Command-Center.git
+git clone https://github.com/PreetiCodeweb/AI-Hospital-Command-Center.git
 cd AI-Hospital-Command-Center
 ```
 

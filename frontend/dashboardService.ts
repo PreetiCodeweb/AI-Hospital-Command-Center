@@ -1,5 +1,5 @@
 import { apiRequest } from './apiClient';
 
 export function getDashboard() {
-  return apiRequest<{ departments: unknown[] }>('/api/dashboard');
+  return apiRequest<{ departments: unknown[] }>('/api/v1/dashboard');
 }

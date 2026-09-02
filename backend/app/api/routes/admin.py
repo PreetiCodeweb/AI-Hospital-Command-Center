@@ -6,7 +6,7 @@ from sqlalchemy import desc
 from app.core.security import get_current_user
 from app.database.session import get_db
 from app.models.models import BedOrder, Review, User, UserRole
-from app.schemas.schemas import BedOrderCreate, BedOrderOut, ReviewCreate, ReviewOut
+from app.schemas.schemas import BedOrderCreate, BedOrderOut, BedOrderStatusUpdate, ReviewCreate, ReviewOut, UserOut
 
 router = APIRouter(prefix="/admin", tags=["Admin"])
 
@@ -42,12 +42,37 @@ def create_bed_order(
         user_id=current_user.id,
         bed_id=UUID(payload.bed_id),
         department_id=UUID(payload.department_id),
+        bed_type=payload.bed_type,
+        quantity=payload.quantity,
         notes=payload.notes,
     )
     db.add(bed_order)
     db.commit()
     db.refresh(bed_order)
     return bed_order
+
+
+@router.get("/users", response_model=list[UserOut])
+def list_admin_users(_: User = Depends(check_admin), db: Session = Depends(get_db)):
+    return db.query(User).order_by(User.full_name.asc()).all()
+
+
+@router.get("/orders", response_model=list[BedOrderOut])
+def list_admin_orders(_: User = Depends(check_admin), db: Session = Depends(get_db)):
+    return db.query(BedOrder).order_by(desc(BedOrder.order_date)).all()
+
+
+@router.patch("/orders/{order_id}", response_model=BedOrderOut)
+def update_order_status(order_id: UUID, payload: BedOrderStatusUpdate, _: User = Depends(check_admin), db: Session = Depends(get_db)):
+    if payload.status not in {"pending", "approved", "fulfilled", "rejected"}:
+        raise HTTPException(status_code=422, detail="Invalid order status")
+    order = db.query(BedOrder).filter(BedOrder.id == order_id).first()
+    if not order:
+        raise HTTPException(status_code=404, detail="Bed order not found")
+    order.status = payload.status
+    db.commit()
+    db.refresh(order)
+    return order
 
 
 @router.get("/reviews", response_model=list[ReviewOut])
